@@ -407,17 +407,19 @@ public class MemcachedConnection extends SpyThread {
     int selected = selector.select(delay);
     Set<SelectionKey> selectedKeys = selector.selectedKeys();
 
-    if (selectedKeys.isEmpty() && !shutDown) {
+    if (selector.selectedKeys().isEmpty() && !shutDown) {
       handleEmptySelects();
     } else {
       getLogger().debug("Selected %d, selected %d keys", selected,
-        selectedKeys.size());
+        selector.selectedKeys().size());
       emptySelects = 0;
-
-      for (SelectionKey sk : selectedKeys) {
+		
+      Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+      while (iterator.hasNext())  {
+        SelectionKey sk = iterator.next();
         handleIO(sk);
+        iterator.remove();
       }
-      selectedKeys.clear();
     }
 
     handleOperationalTasks();
@@ -1005,10 +1007,11 @@ public class MemcachedConnection extends SpyThread {
       return;
     }
 
-    // The operation gets redistributed but has never been actually written,
-    // it we just straight re-add it without cloning.
+    // The operation gets redistributed but has never actually been written,
+    // then we just straight re-add it without cloning.
     if (op.getState() == OperationState.WRITE_QUEUED) {
-      addOperation(op.getHandlingNode(), op);
+      addOperation(((KeyedOperation)op).getKeys().iterator().next(), op);
+      return;
     }
 
     if (op instanceof MultiGetOperationImpl) {
@@ -1120,7 +1123,7 @@ public class MemcachedConnection extends SpyThread {
     final MemcachedNode node) {
     if (ch != null && !ch.isConnected() && !ch.isConnectionPending()) {
       try {
-        ch.close();
+        ch.socket().close();
       } catch (IOException e) {
         getLogger().error("Exception closing channel: %s", node, e);
       }
