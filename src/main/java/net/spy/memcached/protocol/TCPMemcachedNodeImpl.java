@@ -60,7 +60,7 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements
   private final long opQueueMaxBlockTime;
   private final long authWaitTime;
   private final ConnectionFactory connectionFactory;
-  private AtomicInteger reconnectAttempt = new AtomicInteger(1);
+  private AtomicInteger reconnectAttempt = new AtomicInteger(0);
   private SocketChannel channel;
   private int toWrite = 0;
   protected Operation optimizedOp = null;
