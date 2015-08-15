@@ -156,7 +156,7 @@ public class QueueOverflowTest extends ClientBaseCase {
         // OK, at least we got one back.
       }
     }
-    Thread.sleep(500);
+    Thread.sleep(5000); // give enough time for the client to reconnect
     assertTrue(client.set("kx", 0, "woo").get(5, TimeUnit.SECONDS));
   }
 }

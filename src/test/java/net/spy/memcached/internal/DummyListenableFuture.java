@@ -38,7 +38,7 @@ public class DummyListenableFuture<T>
   private boolean done;
   private boolean cancelled = false;
 
-  private T content = null;
+  private volatile T content = null;
 
   public DummyListenableFuture(boolean alreadyDone, ExecutorService service) {
     super(service);
@@ -78,8 +78,8 @@ public class DummyListenableFuture<T>
   }
 
   public void set(T c) {
-    notifyListeners();
     content = c;
+    notifyListeners();
   }
 
   @Override
