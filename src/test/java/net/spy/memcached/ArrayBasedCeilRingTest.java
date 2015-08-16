@@ -34,6 +34,26 @@ public class ArrayBasedCeilRingTest extends TestCase {
         assertEquals(0,ArrayBasedCeilRing.findCeilIndex(Integer.MAX_VALUE, arr,lastIndex));   // 0
     }
 
+    public void testDoubleValueArray() throws Exception {
+        long arr[] = new long[] {5,10};
+        int lastIndex = arr.length-1;
+
+        assertEquals(0,ArrayBasedCeilRing.findCeilIndex(4, arr, lastIndex));
+        assertEquals(1,ArrayBasedCeilRing.findCeilIndex(6,arr, lastIndex));
+        assertEquals(1,ArrayBasedCeilRing.findCeilIndex(6,arr, lastIndex));
+        assertEquals(0,ArrayBasedCeilRing.findCeilIndex(Integer.MAX_VALUE, arr,lastIndex));
+    }
+
+    public void testThreeValueArray() throws Exception {
+        long arr[] = new long[] {5,7,10};
+        int lastIndex = arr.length-1;
+
+        assertEquals(1,ArrayBasedCeilRing.findCeilIndex(6, arr, lastIndex));
+        assertEquals(2,ArrayBasedCeilRing.findCeilIndex(8,arr, lastIndex));
+        assertEquals(2,ArrayBasedCeilRing.findCeilIndex(10,arr, lastIndex));
+        assertEquals(0,ArrayBasedCeilRing.findCeilIndex(Integer.MAX_VALUE, arr,lastIndex));
+    }
+
     public void testNegativeToPositiveArray() {
         // goes from -10000 (in evens) to 9998
         long arr[] = new long[10000];

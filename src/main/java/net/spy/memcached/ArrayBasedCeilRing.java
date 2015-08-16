@@ -140,11 +140,11 @@ public class ArrayBasedCeilRing {
             if (midVal == hashVal) return mid;
             else if (midVal < hashVal) {
                 low = mid + 1;
-                if (low <= high && sortedNodePositions[low] >= hashVal) return low;
+                if (sortedNodePositions[low] >= hashVal) return low;
             }
             else if (midVal > hashVal) {
                 high = mid - 1;
-                if (high >= low && sortedNodePositions[high] < hashVal) return mid;
+                if (sortedNodePositions[high] < hashVal) return mid;
             }
         }
     }
