@@ -713,15 +713,13 @@ public class MemcachedConnection extends SpyThread {
    * @param node th enode to read write from.
    * @throws IOException if an error occurs during read/write.
    */
-  private void handleReadsAndWrites(final SelectionKey sk,
-    final MemcachedNode node) throws IOException {
-    if (sk.isValid()) {
-      if (sk.isReadable()) {
-        handleReads(node);
-      }
-      if (sk.isWritable()) {
-        handleWrites(node);
-      }
+  private void handleReadsAndWrites(final SelectionKey sk, final MemcachedNode node) throws IOException {
+    if (sk.isValid() && sk.isReadable()) {
+      handleReads(node);
+    }
+
+    if (sk.isValid() && sk.isWritable()) {
+      handleWrites(node);
     }
   }
 
