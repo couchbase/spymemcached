@@ -86,8 +86,8 @@ public class MetricsTest {
     assertNotNull(client.get("metrics:test"));
 
     HashMap<String, Integer> metrics = collector.getMetrics();
-    assertTrue(metrics.get("[MEM] Average Bytes written to OS per write") > 0);
-    assertEquals(2, (long) metrics.get("[MEM] Response Rate: Success"));
+    assertTrue(metrics.get("spymemcached.Average-Bytes-Written-To-OS-Per-Write") > 0);
+    assertEquals(2, (long) metrics.get("spymemcached.Response-Rate-Success"));
 
     client.shutdown();
   }

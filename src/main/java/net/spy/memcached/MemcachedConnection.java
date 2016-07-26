@@ -104,25 +104,25 @@ public class MemcachedConnection extends SpyThread {
   private static final int MAX_CLONE_COUNT = 100;
 
   private static final String RECON_QUEUE_METRIC =
-    "[MEM] Reconnecting Nodes (ReconnectQueue)";
+    "spymemcached.Reconnecting-Nodes-ReconnectQueue";
   private static final String SHUTD_QUEUE_METRIC =
-    "[MEM] Shutting Down Nodes (NodesToShutdown)";
+    "spymemcached.Shutting-Down-Nodes-NodesToShutdown";
   private static final String OVERALL_REQUEST_METRIC =
-    "[MEM] Request Rate: All";
+    "spymemcached.Request-Rate-All";
   private static final String OVERALL_AVG_BYTES_WRITE_METRIC =
-    "[MEM] Average Bytes written to OS per write";
+    "spymemcached.Average-Bytes-Written-To-OS-Per-Write";
   private static final String OVERALL_AVG_BYTES_READ_METRIC =
-    "[MEM] Average Bytes read from OS per read";
+    "spymemcached.Average-Bytes-Read-From-OS-Per-Read";
   private static final String OVERALL_AVG_TIME_ON_WIRE_METRIC =
-    "[MEM] Average Time on wire for operations (µs)";
+    "spymemcached.Average-Time-On-Wire-For-Operations-Micoseconds";
   private static final String OVERALL_RESPONSE_METRIC =
-    "[MEM] Response Rate: All (Failure + Success + Retry)";
+    "spymemcached.Response-Rate-All";
   private static final String OVERALL_RESPONSE_RETRY_METRIC =
-    "[MEM] Response Rate: Retry";
+    "spymemcached.Response-Rate-Retry";
   private static final String OVERALL_RESPONSE_FAIL_METRIC =
-    "[MEM] Response Rate: Failure";
+    "spymemcached.Response-Rate-Failure";
   private static final String OVERALL_RESPONSE_SUCC_METRIC =
-    "[MEM] Response Rate: Success";
+    "spymemcached.Response-Rate-Success";
 
   /**
    * If the connection is alread shut down or shutting down.
