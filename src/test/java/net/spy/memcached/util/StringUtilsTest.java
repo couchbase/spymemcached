@@ -87,7 +87,6 @@ public class StringUtilsTest {
   @Test
   public void shouldValidateAsciiKey() {
     StringUtils.validateKey("mykey1234", false);
-    assertTrue(true);
   }
 
   @Test(expected = IllegalArgumentException.class)
