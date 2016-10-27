@@ -235,6 +235,18 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements
 
   private Operation getNextWritableOp() {
     Operation o = getCurrentWriteOp();
+
+    if (o != null && o.getState() == OperationState.COMPLETE) {
+      // Happens if the operation triggered ERR_2BIG:
+      // the operation is set completed but it's not removed from the queue
+      // since there are still possibly some data left to be written
+      getLogger().debug("Completed op in write queue, removing.");
+      Operation completedOp = removeCurrentWriteOp();
+      assert o == completedOp;
+
+      o = getCurrentWriteOp();
+    }
+
     while (o != null && o.getState() == OperationState.WRITE_QUEUED) {
       synchronized(o) {
         if (o.isCancelled()) {
