@@ -4,17 +4,10 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
     http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <!--
-    == NOTE ==
-    This maven file is just for developer convenience, release management
-    and primary dependency configuration, as well as all ant targets are
-    managed through ant/ivy.
-    -->
-
     <modelVersion>4.0.0</modelVersion>
-    <groupId>net.spy</groupId>
+    <groupId>com.adgear.vendor</groupId>
     <artifactId>spymemcached</artifactId>
-    <version>2.999.999-SNAPSHOT</version> <!-- not used -->
+    <version>1.0</version>
 
     <name>Spymemcached</name>
     <description>A client library for memcached.</description>
