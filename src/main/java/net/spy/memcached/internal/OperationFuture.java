@@ -254,6 +254,32 @@ public class OperationFuture<T>
     }
     return status;
   }
+  
+  /**
+   * Get the current status of this operation.
+   *
+   * Note that the operation status may change as the operation is tried and
+   * potentially retried against the servers specified by the NodeLocator.
+   *
+   * The interrupted status of the current thread is cleared by this method.
+   * Inspect the returned OperationStatus to check whether an interruption has taken place.
+   *
+   * @param duration amount of time to wait
+   * @param units unit of time to wait
+   * @return OperationStatus
+   */
+  public OperationStatus getStatus(long duration, TimeUnit units) {
+    if (status == null) {
+      try {
+        get(duration, units);
+      } catch (InterruptedException e) {
+        status = new OperationStatus(false, "Interrupted", StatusCode.INTERRUPTED);
+      } catch (ExecutionException e) {
+        getLogger().warn("Error getting status of operation", e);
+      }
+    }
+    return status;
+  }
 
   /**
    * Set the Operation associated with this OperationFuture.
