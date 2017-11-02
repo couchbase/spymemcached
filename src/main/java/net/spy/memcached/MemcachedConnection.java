@@ -104,10 +104,10 @@ public class MemcachedConnection extends SpyThread {
   private static final int DEFAULT_RETRY_QUEUE_SIZE = -1;
 
   /**
-   * If an operation gets cloned more than this ceiling, cancel it for
-   * safety reasons.
+   * The default number of times an operation will be cloned before it
+   * is cancelled for safety reasons.
    */
-  private static final int MAX_CLONE_COUNT = 100;
+  private static final int DEFAULT_MAX_CLONE_COUNT = 100;
 
   private static final String RECON_QUEUE_METRIC =
     "[MEM] Reconnecting Nodes (ReconnectQueue)";
@@ -252,6 +252,12 @@ public class MemcachedConnection extends SpyThread {
   private final int retryQueueSize;
 
   /**
+   * The number of times an operation will be cloned before it is
+   * cancelled for safety reasons.
+   */
+  private final int maxCloneCount;
+
+  /**
    * Construct a {@link MemcachedConnection}.
    *
    * @param bufSize the size of the buffer used for reading from the server.
@@ -293,6 +299,9 @@ public class MemcachedConnection extends SpyThread {
     retryQueueSize = Integer.parseInt(System.getProperty("net.spy.retryQueueSize",
         Integer.toString(DEFAULT_RETRY_QUEUE_SIZE)));
     getLogger().info("Setting retryQueueSize to " + retryQueueSize);
+
+    maxCloneCount = Integer.parseInt(System.getProperty("net.spy.maxCloneCount",
+      Integer.toString(DEFAULT_MAX_CLONE_COUNT)));
 
     List<MemcachedNode> connections = createConnections(a);
     locator = f.createLocator(connections);
@@ -1048,9 +1057,9 @@ public class MemcachedConnection extends SpyThread {
       return;
     }
 
-    if (op.getCloneCount() >= MAX_CLONE_COUNT) {
+    if (op.getCloneCount() >= maxCloneCount) {
       getLogger().warn("Cancelling operation " + op + "because it has been "
-        + "retried (cloned) more than " + MAX_CLONE_COUNT + "times.");
+        + "retried (cloned) more than " + maxCloneCount + "times.");
       op.cancel();
       return;
     }
