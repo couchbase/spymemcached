@@ -36,6 +36,7 @@ import net.spy.memcached.ops.Operation;
 import net.spy.memcached.ops.OperationQueueFactory;
 import net.spy.memcached.protocol.ascii.AsciiOperationFactory;
 import net.spy.memcached.protocol.binary.BinaryOperationFactory;
+import net.spy.memcached.transcoders.TranscoderService;
 import net.spy.memcached.transcoders.Transcoder;
 
 /**
@@ -48,6 +49,7 @@ public class ConnectionFactoryBuilder {
   protected OperationQueueFactory writeQueueFactory;
 
   protected Transcoder<Object> transcoder;
+  protected TranscoderService transcoderService;
 
   protected FailureMode failureMode;
 
@@ -143,6 +145,14 @@ public class ConnectionFactoryBuilder {
   public ConnectionFactoryBuilder setTranscoder(Transcoder<Object> t) {
     transcoder = t;
     return this;
+  }
+
+  /**
+   * Set the default transcoder service.
+   */
+  public ConnectionFactoryBuilder setTranscoderService(TranscoderService t) {
+	transcoderService = t;
+	return this;
   }
 
   /**
@@ -365,6 +375,11 @@ public class ConnectionFactoryBuilder {
       @Override
       public Transcoder<Object> getDefaultTranscoder() {
         return transcoder == null ? super.getDefaultTranscoder() : transcoder;
+      }
+
+      @Override
+      public TranscoderService getDefaultTranscoderService(boolean daemon) {
+        return transcoderService == null ? super.getDefaultTranscoderService(daemon) : transcoderService;
       }
 
       @Override
