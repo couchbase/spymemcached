@@ -57,7 +57,7 @@ public abstract class AbstractNodeLocationCase extends MockObjectTestCase {
     assertEquals("Incorrect sequence size for " + k, seq.length, pos);
   }
 
-  public final void testCloningGetPrimary() {
+  public void testCloningGetPrimary() {
     setupNodes(5);
     assertTrue(locator.getReadonlyCopy().getPrimary("hi")
       instanceof MemcachedNodeROImpl);
