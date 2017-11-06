@@ -26,12 +26,9 @@ package net.spy.memcached.protocol;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import net.spy.memcached.MemcachedNode;
 import net.spy.memcached.compat.SpyObject;
@@ -66,8 +63,6 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
   private volatile boolean timedout;
   private long creationTime;
   private boolean timedOutUnsent = false;
-  protected Collection<MemcachedNode> notMyVbucketNodes =
-      new HashSet<MemcachedNode>();
   private long writeCompleteTimestamp;
 
   /**
