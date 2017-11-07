@@ -49,6 +49,7 @@ class CASOperationImpl extends OperationImpl implements CASOperation {
       false, "NOT_FOUND", CASResponse.NOT_FOUND, StatusCode.ERR_NOT_FOUND);
   private static final OperationStatus EXISTS = new CASOperationStatus(false,
       "EXISTS", CASResponse.EXISTS, StatusCode.ERR_EXISTS);
+  private static final String ZERO = "0";
 
   private final String key;
   private final long casValue;
@@ -76,9 +77,11 @@ class CASOperationImpl extends OperationImpl implements CASOperation {
 
   @Override
   public void initialize() {
+    byte[] keyBytes = KeyUtil.getKeyBytes(key);
     ByteBuffer bb = ByteBuffer.allocate(data.length
-        + KeyUtil.getKeyBytes(key).length + OVERHEAD);
-    setArguments(bb, "cas", key, flags, exp, data.length, casValue);
+      + keyBytes.length + OVERHEAD);
+    setArgumentsWithKey(bb, "cas", keyBytes, flags == 0 ? ZERO : flags,
+        exp == 0 ? ZERO : exp, data.length, casValue);
     assert bb.remaining() >= data.length + 2 : "Not enough room in buffer,"
         + " need another " + (2 + data.length - bb.remaining());
     bb.put(data);

@@ -62,9 +62,9 @@ final class DeleteOperationImpl extends OperationImpl implements
 
   @Override
   public void initialize() {
-    ByteBuffer b = ByteBuffer.allocate(KeyUtil.getKeyBytes(key).length
-        + OVERHEAD);
-    setArguments(b, "delete", key);
+    byte[] keyBytes = KeyUtil.getKeyBytes(key);
+    ByteBuffer b = ByteBuffer.allocate(keyBytes.length + OVERHEAD);
+    setArgumentsWithKey(b, "delete", keyBytes);
     b.flip();
     setBuffer(b);
   }

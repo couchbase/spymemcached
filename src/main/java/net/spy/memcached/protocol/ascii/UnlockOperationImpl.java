@@ -67,9 +67,9 @@ final class UnlockOperationImpl extends OperationImpl implements
 
   @Override
   public void initialize() {
-    ByteBuffer b = ByteBuffer.allocate(KeyUtil.getKeyBytes(key).length
-        + OVERHEAD);
-    setArguments(b, CMD, key, cas);
+    byte[] keyBytes = KeyUtil.getKeyBytes(key);
+    ByteBuffer b = ByteBuffer.allocate(keyBytes.length + OVERHEAD);
+    setArgumentsWithKey(b, CMD, keyBytes, cas);
     b.flip();
     setBuffer(b);
   }
