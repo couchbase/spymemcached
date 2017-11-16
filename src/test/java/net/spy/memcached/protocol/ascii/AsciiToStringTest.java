@@ -46,7 +46,7 @@ public class AsciiToStringTest extends TestCase{
   }
 
   public void testGetAndTouch() {
-    (new GetAndTouchOperationImpl("gat", 15, null, "key")).toString();
+    (new GetAndTouchOperationImpl("key", 15, null)).toString();
   }
 
   public void testTouch() {

@@ -203,11 +203,20 @@ public abstract class BaseGetOpImpl extends OperationImpl {
     size += afterKeyBytesSize();
     ByteBuffer b = ByteBuffer.allocate(size);
     b.put(cmd.getBytes());
-    for (byte[] k : keyBytes) {
-      b.put((byte) ' ');
-      b.put(k);
+    if (cmd.equals("gats")) {
+      afterKeyBytes(b);
+      for (byte[] k : keyBytes) {
+        b.put((byte) ' ');
+        b.put(k);
+      }
     }
-    afterKeyBytes(b);
+    else {
+      for (byte[] k : keyBytes) {
+        b.put((byte) ' ');
+        b.put(k);
+      }
+      afterKeyBytes(b);
+    }
     b.put(RN_BYTES);
     b.flip();
     setBuffer(b);
