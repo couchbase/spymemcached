@@ -25,6 +25,8 @@ package net.spy.memcached.auth;
 
 import javax.security.auth.callback.CallbackHandler;
 
+import net.spy.memcached.util.PropertyUtils;
+
 /**
  * Information required to specify authentication mechanisms and callbacks.
  */
@@ -57,7 +59,7 @@ public class AuthDescriptor {
     cbh = h;
     authAttempts = 0;
     String authThreshhold =
-        System.getProperty("net.spy.memcached.auth.AuthThreshold");
+        PropertyUtils.getSystemProperty("net.spy.memcached.auth.AuthThreshold");
     if (authThreshhold != null) {
       allowedAuthAttempts = Integer.parseInt(authThreshhold);
     } else {

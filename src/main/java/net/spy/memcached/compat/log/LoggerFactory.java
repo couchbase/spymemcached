@@ -27,6 +27,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import net.spy.memcached.util.PropertyUtils;
+
 /**
  * Factory to get logger instances.
  *
@@ -124,7 +126,8 @@ public final class LoggerFactory extends Object {
   @SuppressWarnings("unchecked")
   private void getConstructor() {
     Class<? extends Logger> c = DefaultLogger.class;
-    String className = System.getProperty("net.spy.log.LoggerImpl");
+    String className =
+        PropertyUtils.getSystemProperty("net.spy.log.LoggerImpl");
 
     if (className != null) {
       try {

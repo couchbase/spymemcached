@@ -22,6 +22,8 @@
 
 package net.spy.memcached;
 
+import net.spy.memcached.util.PropertyUtils;
+
 /**
  * A testConfig.
  */
@@ -33,22 +35,22 @@ public final class TestConfig {
   public static final String TYPE_TEST_UNIT = "unit";
   public static final String TYPE_TEST_CI = "ci";
 
-  public static final String IPV4_ADDR = System.getProperty(IPV4_PROP,
-      "127.0.0.1");
+  public static final String IPV4_ADDR =
+      PropertyUtils.getSystemProperty(IPV4_PROP, "127.0.0.1");
   public static final String IPV6_ADDR = resolveIpv6Addr();
 
   public static final int PORT_NUMBER =
-      Integer.parseInt(System.getProperty(PORT_PROP, "11211"));
+      Integer.parseInt(PropertyUtils.getSystemProperty(PORT_PROP, "11211"));
 
-  public static final String TEST_TYPE = System.getProperty(TEST_PROP,
-      TYPE_TEST_UNIT).toLowerCase();
+  public static final String TEST_TYPE =
+      PropertyUtils.getSystemProperty(TEST_PROP, TYPE_TEST_UNIT).toLowerCase();
 
   private TestConfig() {
     // Empty
   }
 
   private static String resolveIpv6Addr() {
-    String ipv6 = System.getProperty(IPV6_PROP, "::1");
+    String ipv6 = PropertyUtils.getSystemProperty(IPV6_PROP, "::1");
     // If the ipv4 address was set but the ipv6 address wasn't then
     // set the ipv6 address to use ipv4.
     if (!IPV4_ADDR.equals("127.0.0.1") && !IPV4_ADDR.equals("localhost")

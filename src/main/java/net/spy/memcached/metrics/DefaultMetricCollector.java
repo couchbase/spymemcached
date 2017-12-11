@@ -23,6 +23,9 @@
 package net.spy.memcached.metrics;
 
 import com.codahale.metrics.*;
+
+import net.spy.memcached.util.PropertyUtils;
+
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -96,12 +99,15 @@ public final class DefaultMetricCollector extends AbstractMetricCollector {
    * Initialize the proper metrics Reporter.
    */
   private void initReporter() {
-    String reporterType =
-      System.getProperty("net.spy.metrics.reporter.type", DEFAULT_REPORTER_TYPE);
-    String reporterInterval =
-      System.getProperty("net.spy.metrics.reporter.interval", DEFAULT_REPORTER_INTERVAL);
-    String reporterDir =
-      System.getProperty("net.spy.metrics.reporter.outdir", DEFAULT_REPORTER_OUTDIR);
+    String reporterType = PropertyUtils.getSystemProperty(
+        "net.spy.metrics.reporter.type",
+        DEFAULT_REPORTER_TYPE);
+    String reporterInterval = PropertyUtils.getSystemProperty(
+        "net.spy.metrics.reporter.interval",
+        DEFAULT_REPORTER_INTERVAL);
+    String reporterDir = PropertyUtils.getSystemProperty(
+        "net.spy.metrics.reporter.outdir",
+        DEFAULT_REPORTER_OUTDIR);
 
     if(reporterType.equals("console")) {
       final ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
