@@ -92,7 +92,8 @@ public enum StatusCode {
     } else if (line.equals("NOT_FOUND")) {
       return ERR_NOT_FOUND;
     } else if (line.equals("ERROR")
-      || line.matches("^(CLIENT|SERVER)_ERROR.*")) {
+      || line.startsWith("CLIENT_ERROR")
+      || line.startsWith("SERVER_ERROR")) {
       return ERR_INTERNAL;
     } else {
       return ERR_CLIENT;
