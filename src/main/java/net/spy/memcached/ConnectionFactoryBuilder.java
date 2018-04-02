@@ -357,6 +357,15 @@ public class ConnectionFactoryBuilder {
           return new ArrayModNodeLocator(nodes, getHashAlg());
         case CONSISTENT:
           return new KetamaNodeLocator(nodes, getHashAlg());
+        case ROUND_ROBIN:
+          if (getFailureMode() != FailureMode.Cancel
+              && getFailureMode() != FailureMode.Retry)
+          {
+            throw new IllegalStateException(
+              "The round-robin locator is only supported for the 'cancel' "
+              + "and 'retry' failure modes.");
+          }
+          return new RoundRobinLocator(nodes);
         default:
           throw new IllegalStateException("Unhandled locator type: " + locator);
         }
@@ -493,6 +502,10 @@ public class ConnectionFactoryBuilder {
      * algorithm.
      */
     CONSISTENT,
+    /**
+     * Round robin algorithm.
+     */
+    ROUND_ROBIN,
     /**
      * VBucket support.
      */
