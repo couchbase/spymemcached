@@ -42,6 +42,7 @@ import net.spy.memcached.ops.VBucketAware;
 import net.spy.memcached.protocol.binary.BinaryOperationFactory;
 import net.spy.memcached.protocol.binary.MultiGetOperationImpl;
 import net.spy.memcached.protocol.binary.TapAckOperationImpl;
+import net.spy.memcached.util.PropertyUtils;
 import net.spy.memcached.util.StringUtils;
 
 import java.io.IOException;
@@ -280,17 +281,20 @@ public class MemcachedConnection extends SpyThread {
     this.bufSize = bufSize;
     this.connectionFactory = f;
 
-    String verifyAlive = System.getProperty("net.spy.verifyAliveOnConnect");
+    String verifyAlive =
+        PropertyUtils.getSystemProperty("net.spy.verifyAliveOnConnect");
     if(verifyAlive != null && verifyAlive.equals("true")) {
       verifyAliveOnConnect = true;
     } else {
       verifyAliveOnConnect = false;
     }
 
-    wakeupDelay = Integer.parseInt( System.getProperty("net.spy.wakeupDelay",
-      Integer.toString(DEFAULT_WAKEUP_DELAY)));
+    wakeupDelay = Integer.parseInt(
+        PropertyUtils.getSystemProperty("net.spy.wakeupDelay",
+        Integer.toString(DEFAULT_WAKEUP_DELAY)));
 
-    retryQueueSize = Integer.parseInt(System.getProperty("net.spy.retryQueueSize",
+    retryQueueSize = Integer.parseInt(
+        PropertyUtils.getSystemProperty("net.spy.retryQueueSize",
         Integer.toString(DEFAULT_RETRY_QUEUE_SIZE)));
     getLogger().info("Setting retryQueueSize to " + retryQueueSize);
 

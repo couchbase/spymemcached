@@ -53,6 +53,7 @@ import net.spy.memcached.protocol.binary.BinaryMemcachedNodeImpl;
 import net.spy.memcached.protocol.binary.BinaryOperationFactory;
 import net.spy.memcached.transcoders.SerializingTranscoder;
 import net.spy.memcached.transcoders.Transcoder;
+import net.spy.memcached.util.PropertyUtils;
 
 /**
  * Default implementation of ConnectionFactory.
@@ -435,7 +436,7 @@ public class DefaultConnectionFactory extends SpyObject implements
 
   @Override
   public MetricType enableMetrics() {
-    String metricType = System.getProperty("net.spy.metrics.type");
+    String metricType = PropertyUtils.getSystemProperty("net.spy.metrics.type");
     return metricType == null
       ? DEFAULT_METRIC_TYPE : MetricType.valueOf(metricType.toUpperCase());
   }
@@ -446,7 +447,8 @@ public class DefaultConnectionFactory extends SpyObject implements
       return metrics;
     }
 
-    String enableMetrics = System.getProperty("net.spy.metrics.enable");
+    String enableMetrics =
+        PropertyUtils.getSystemProperty("net.spy.metrics.enable");
     if (enableMetrics().equals(MetricType.OFF) || enableMetrics == "false") {
       getLogger().debug("Metric collection disabled.");
       metrics =  new NoopMetricCollector();
