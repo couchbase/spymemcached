@@ -30,9 +30,20 @@ import net.spy.memcached.ops.GetAndTouchOperation;
 public class GetAndTouchOperationImpl extends BaseGetOpImpl implements
     GetAndTouchOperation {
 
+  private static final String CMD = "gats";
+
+  /**
+   * @deprecated use {@link #GetAndTouchOperationImpl(String, int,
+   *   net.spy.memcached.ops.GetAndTouchOperation.Callback)}
+   */
   public GetAndTouchOperationImpl(String c, int e,
       GetAndTouchOperation.Callback cb, String k) {
     super(c, e, cb, k);
+  }
+
+  public GetAndTouchOperationImpl(String k, int e,
+      GetAndTouchOperation.Callback cb) {
+    super(CMD, e, cb, k);
   }
 
   @Override
