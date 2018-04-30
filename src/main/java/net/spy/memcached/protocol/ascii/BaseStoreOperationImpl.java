@@ -40,6 +40,7 @@ abstract class BaseStoreOperationImpl extends OperationImpl {
   private static final int OVERHEAD = 32;
   private static final OperationStatus STORED = new OperationStatus(true,
       "STORED", StatusCode.SUCCESS);
+  private static final String ZERO = "0";
   protected final String type;
   protected final String key;
   protected final int flags;
@@ -66,9 +67,11 @@ abstract class BaseStoreOperationImpl extends OperationImpl {
 
   @Override
   public void initialize() {
+    byte[] keyBytes = KeyUtil.getKeyBytes(key);
     ByteBuffer bb = ByteBuffer.allocate(data.length
-        + KeyUtil.getKeyBytes(key).length + OVERHEAD);
-    setArguments(bb, type, key, flags, exp, data.length);
+        + keyBytes.length + OVERHEAD);
+    setArgumentsWithKey(bb, type, keyBytes, flags == 0 ? ZERO : flags,
+        exp == 0 ? ZERO : exp, data.length);
     assert bb.remaining() >= data.length + 2 : "Not enough room in buffer,"
         + " need another " + (2 + data.length - bb.remaining());
     bb.put(data);

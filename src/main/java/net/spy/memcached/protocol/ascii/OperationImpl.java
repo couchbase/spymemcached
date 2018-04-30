@@ -109,6 +109,19 @@ abstract class OperationImpl extends BaseOperationImpl implements Operation {
     bb.put(CRLF);
   }
 
+  void setArgumentsWithKey(ByteBuffer bb, String type, byte[] key,
+      Object... args)
+  {
+	bb.put(KeyUtil.getKeyBytes(type));
+	bb.put((byte) ' ');
+	bb.put(key);
+	for (Object o : args) {
+	  bb.put((byte) ' ');
+	  bb.put(KeyUtil.getKeyBytes(String.valueOf(o)));
+	}
+	bb.put(CRLF);
+  }
+
   OperationErrorType classifyError(String line) {
     OperationErrorType rv = null;
     if (line.startsWith("ERROR")) {
