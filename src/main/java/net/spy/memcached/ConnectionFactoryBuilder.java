@@ -86,6 +86,36 @@ public class ConnectionFactoryBuilder {
     // empty
   }
 
+  public ConnectionFactoryBuilder(ConnectionFactoryBuilder source) {
+    setOpQueueFactory(source.opQueueFactory);
+    setReadOpQueueFactory(source.readQueueFactory);
+    setWriteOpQueueFactory(source.writeQueueFactory);
+    setTranscoder(source.transcoder);
+    setFailureMode(source.failureMode);
+    setInitialObservers(source.initialObservers);
+    setOpFact(source.opFact);
+    setLocatorType(source.locator);
+    setOpTimeout(source.opTimeout);
+    setDaemon(source.isDaemon);
+    setShouldOptimize(source.shouldOptimize);
+    setUseNagleAlgorithm(source.useNagle);
+    setMaxReconnectDelay(source.maxReconnectDelay);
+    setReadBufferSize(source.readBufSize);
+    setHashAlg(source.hashAlg);
+    setAuthDescriptor(source.authDescriptor);
+    setOpQueueMaxBlockTime(source.opQueueMaxBlockTime);
+    setTimeoutExceptionThreshold(source.timeoutExceptionThreshold);
+    setEnableMetrics(source.metricType);
+    setMetricCollector(source.collector);
+    setListenerExecutorService(source.executorService);
+    setAuthWaitTime(source.authWaitTime);
+  }
+
+  /**
+   * @deprecated because some values (eg. opQueueFactory or locator) can not be easily copied from {@link ConnectionFactory}.<br/>
+   * Use {@link #ConnectionFactoryBuilder(ConnectionFactoryBuilder)} instead.
+   */
+  @Deprecated
   public ConnectionFactoryBuilder(ConnectionFactory cf) {
     setAuthDescriptor(cf.getAuthDescriptor());
     setDaemon(cf.isDaemon());
@@ -276,7 +306,7 @@ public class ConnectionFactoryBuilder {
   public ConnectionFactoryBuilder setTimeoutExceptionThreshold(int to) {
     assert to > 1 : "Minimum timeout exception threshold is 2";
     if (to > 1) {
-      timeoutExceptionThreshold = to - 2;
+      timeoutExceptionThreshold = to;
     }
     return this;
   }
