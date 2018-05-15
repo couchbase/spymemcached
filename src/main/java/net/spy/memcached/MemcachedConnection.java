@@ -1468,9 +1468,21 @@ public class MemcachedConnection extends SpyThread {
         logRunException(e);
       } catch (ConcurrentModificationException e) {
         logRunException(e);
+      }  catch (Throwable t) {
+        logThrowable(t);
       }
     }
     getLogger().info("Shut down memcached client");
+  }
+
+  private void logThrowable(Throwable t) {
+    if (shutDown) {
+      // There are a couple types of errors that occur during the
+      // shutdown sequence.
+      getLogger().info("Unexpected error occurred during shutdown", t);
+    } else {
+      getLogger().warn("Problem handling memcached IO", t);
+    }
   }
 
   /**
