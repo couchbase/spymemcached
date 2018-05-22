@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
@@ -49,8 +48,7 @@ import java.util.TreeMap;
  */
 public final class KetamaNodeLocator extends SpyObject implements NodeLocator {
 
-  private volatile TreeMap<Long, MemcachedNode> ketamaNodes;
-  private volatile Collection<MemcachedNode> allNodes;
+  private volatile ArrayBasedCeilRing ketamaNodes;
 
   private final HashAlgorithm hashAlg;
   private final Map<InetSocketAddress, Integer> weights;
@@ -112,7 +110,7 @@ public final class KetamaNodeLocator extends SpyObject implements NodeLocator {
    *          continuum
    * @param alg The hash algorithm to use when choosing a node in the Ketama
    *          consistent hash continuum
-   * @param weights node weights for ketama, a map from InetSocketAddress to
+   * @param nodeWeights node weights for ketama, a map from InetSocketAddress to
    *          weight as Integer
    * @param configuration node locator configuration
    */
@@ -120,7 +118,6 @@ public final class KetamaNodeLocator extends SpyObject implements NodeLocator {
             Map<InetSocketAddress, Integer> nodeWeights,
             KetamaNodeLocatorConfiguration configuration) {
     super();
-    allNodes = nodes;
     hashAlg = alg;
     config = configuration;
     weights = nodeWeights;
@@ -128,13 +125,12 @@ public final class KetamaNodeLocator extends SpyObject implements NodeLocator {
     setKetamaNodes(nodes);
   }
 
-  private KetamaNodeLocator(TreeMap<Long, MemcachedNode> smn,
-      Collection<MemcachedNode> an, HashAlgorithm alg,
-      Map<InetSocketAddress, Integer> nodeWeights,
-      KetamaNodeLocatorConfiguration conf) {
+  private KetamaNodeLocator(ArrayBasedCeilRing nodes,
+                            HashAlgorithm alg,
+                            Map<InetSocketAddress, Integer> nodeWeights,
+                            KetamaNodeLocatorConfiguration conf) {
     super();
-    ketamaNodes = smn;
-    allNodes = an;
+    ketamaNodes = nodes;
     hashAlg = alg;
     config = conf;
     weights = nodeWeights;
@@ -142,7 +138,7 @@ public final class KetamaNodeLocator extends SpyObject implements NodeLocator {
   }
 
   public Collection<MemcachedNode> getAll() {
-    return allNodes;
+    return ketamaNodes.getAllNodes();
   }
 
   public MemcachedNode getPrimary(final String k) {
@@ -152,53 +148,25 @@ public final class KetamaNodeLocator extends SpyObject implements NodeLocator {
   }
 
   long getMaxKey() {
-    return getKetamaNodes().lastKey();
+    return ketamaNodes.getMaxPosition();
   }
 
   MemcachedNode getNodeForKey(long hash) {
-    final MemcachedNode rv;
-    if (!ketamaNodes.containsKey(hash)) {
-      // Java 1.6 adds a ceilingKey method, but I'm still stuck in 1.5
-      // in a lot of places, so I'm doing this myself.
-      SortedMap<Long, MemcachedNode> tailMap = getKetamaNodes().tailMap(hash);
-      if (tailMap.isEmpty()) {
-        hash = getKetamaNodes().firstKey();
-      } else {
-        hash = tailMap.firstKey();
-      }
-    }
-    rv = getKetamaNodes().get(hash);
-    return rv;
+    return ketamaNodes.findClosestNode(hash);
   }
 
   public Iterator<MemcachedNode> getSequence(String k) {
     // Seven searches gives us a 1 in 2^7 chance of hitting the
     // same dead node all of the time.
-    return new KetamaIterator(k, 7, getKetamaNodes(), hashAlg);
+    return new ArrayBasedCeilRingIterator(k, 7, hashAlg,ketamaNodes);
   }
 
   public NodeLocator getReadonlyCopy() {
-    TreeMap<Long, MemcachedNode> smn =
-        new TreeMap<Long, MemcachedNode>(getKetamaNodes());
-    Collection<MemcachedNode> an =
-        new ArrayList<MemcachedNode>(allNodes.size());
-
-    // Rewrite the values a copy of the map.
-    for (Map.Entry<Long, MemcachedNode> me : smn.entrySet()) {
-      smn.put(me.getKey(), new MemcachedNodeROImpl(me.getValue()));
-    }
-
-    // Copy the allNodes collection.
-    for (MemcachedNode n : allNodes) {
-      an.add(new MemcachedNodeROImpl(n));
-    }
-
-    return new KetamaNodeLocator(smn, an, hashAlg, weights, config);
+    return new KetamaNodeLocator(ketamaNodes.roClone(), hashAlg, weights, config);
   }
 
   @Override
   public void updateLocator(List<MemcachedNode> nodes) {
-    allNodes = nodes;
     setKetamaNodes(nodes);
   }
 
@@ -206,7 +174,7 @@ public final class KetamaNodeLocator extends SpyObject implements NodeLocator {
    * @return the ketamaNodes
    */
   protected TreeMap<Long, MemcachedNode> getKetamaNodes() {
-    return ketamaNodes;
+    return (TreeMap)ketamaNodes.asMap();
   }
 
   /**
@@ -260,7 +228,7 @@ public final class KetamaNodeLocator extends SpyObject implements NodeLocator {
       }
     }
     assert newNodeMap.size() == numReps * nodes.size();
-    ketamaNodes = newNodeMap;
+    ketamaNodes = new ArrayBasedCeilRing(newNodeMap,nodes);
   }
 
   private List<Long> ketamaNodePositionsAtIteration(MemcachedNode node, int iteration) {
