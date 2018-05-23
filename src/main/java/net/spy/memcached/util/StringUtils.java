@@ -43,28 +43,7 @@ public final class StringUtils {
    * Maximum supported key length.
    */
   private static final int MAX_KEY_LENGTH = MemcachedClientIF.MAX_KEY_LENGTH;
-
-  /**
-   * Exception thrown if the input key is too long.
-   */
-  private static final IllegalArgumentException KEY_TOO_LONG_EXCEPTION =
-    new IllegalArgumentException("Key is too long (maxlen = "
-      + MAX_KEY_LENGTH + ')');
-
-  /**
-   * Exception thrown if the input key is empty.
-   */
-  private static final IllegalArgumentException KEY_EMPTY_EXCEPTION =
-    new IllegalArgumentException("Key must contain at least one character.");
-
-  /**
-   * Preset the stack traces for the static exceptions.
-   */
-  static {
-    KEY_TOO_LONG_EXCEPTION.setStackTrace(new StackTraceElement[0]);
-    KEY_EMPTY_EXCEPTION.setStackTrace(new StackTraceElement[0]);
-  }
-
+  
   /**
    * Private constructor, since this is a purely static class.
    */
@@ -118,20 +97,23 @@ public final class StringUtils {
    *
    * @param key the key to check.
    * @param binary if binary protocol is used.
+   *               
+   * @throws IllegalArgumentException if the input key is too long
+   * @throws IllegalArgumentException Exception thrown if the input key is empty
    */
   public static void validateKey(final String key, final boolean binary) {
     byte[] keyBytes = KeyUtil.getKeyBytes(key);
     int keyLength = keyBytes.length;
 
     if (keyLength > MAX_KEY_LENGTH) {
-      throw KEY_TOO_LONG_EXCEPTION;
+      throw new IllegalArgumentException("Key is too long (maxlen = " + MAX_KEY_LENGTH + ')');
     }
 
     if (keyLength == 0) {
-      throw KEY_EMPTY_EXCEPTION;
+      throw new IllegalArgumentException("Key must contain at least one character.");
     }
 
-    if(!binary) {
+    if (!binary) {
       for (byte b : keyBytes) {
         if (b == ' ' || b == '\n' || b == '\r' || b == 0) {
           throw new IllegalArgumentException(
