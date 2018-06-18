@@ -270,7 +270,7 @@ public class MemcachedConnection extends SpyThread {
     addedQueue = new ConcurrentLinkedQueue<MemcachedNode>();
     failureMode = fm;
     shouldOptimize = f.shouldOptimize();
-    maxDelay = TimeUnit.SECONDS.toMillis(f.getMaxReconnectDelay());
+    maxDelay = f.getMaxReconnectDelay();
     opFact = opfactory;
     timeoutExceptionThreshold = f.getTimeoutExceptionThreshold();
     selector = Selector.open();
