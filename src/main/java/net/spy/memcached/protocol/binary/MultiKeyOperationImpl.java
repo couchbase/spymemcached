@@ -26,6 +26,7 @@ package net.spy.memcached.protocol.binary;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import net.spy.memcached.MemcachedNode;
@@ -40,7 +41,10 @@ import net.spy.memcached.util.StringUtils;
  */
 abstract class MultiKeyOperationImpl extends OperationImpl implements
   VBucketAware, KeyedOperation {
+
   protected final Map<String, Short> vbmap;
+  protected Collection<MemcachedNode> notMyVbucketNodes =
+      new HashSet<MemcachedNode>();
 
   protected MultiKeyOperationImpl(byte c, int o, OperationCallback cb) {
     super(c, o, cb);
