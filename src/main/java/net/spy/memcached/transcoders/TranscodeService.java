@@ -33,13 +33,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.spy.memcached.CachedData;
-import net.spy.memcached.compat.SpyObject;
 import net.spy.memcached.internal.BasicThreadFactory;
 
 /**
  * Asynchronous transcoder.
  */
-public class TranscodeService extends SpyObject {
+public class TranscodeService extends TranscoderService {
 
   private final ThreadPoolExecutor pool;
 

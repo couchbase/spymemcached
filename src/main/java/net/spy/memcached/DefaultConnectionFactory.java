@@ -33,9 +33,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -51,7 +49,9 @@ import net.spy.memcached.protocol.ascii.AsciiMemcachedNodeImpl;
 import net.spy.memcached.protocol.ascii.AsciiOperationFactory;
 import net.spy.memcached.protocol.binary.BinaryMemcachedNodeImpl;
 import net.spy.memcached.protocol.binary.BinaryOperationFactory;
+import net.spy.memcached.transcoders.TranscoderService;
 import net.spy.memcached.transcoders.SerializingTranscoder;
+import net.spy.memcached.transcoders.TranscodeService;
 import net.spy.memcached.transcoders.Transcoder;
 
 /**
@@ -377,6 +377,15 @@ public class DefaultConnectionFactory extends SpyObject implements
    */
   public Transcoder<Object> getDefaultTranscoder() {
     return new SerializingTranscoder();
+  }
+
+  /*
+   * (non-Javadoc)
+   *
+   * @see net.spy.memcached.ConnectionFactory#getDefaultTranscoderService()
+   */
+  public TranscoderService getDefaultTranscoderService(boolean daemon) {
+    return new TranscodeService(daemon);
   }
 
   /*

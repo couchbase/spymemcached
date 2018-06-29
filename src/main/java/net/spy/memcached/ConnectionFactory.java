@@ -36,6 +36,7 @@ import net.spy.memcached.auth.AuthDescriptor;
 import net.spy.memcached.metrics.MetricCollector;
 import net.spy.memcached.metrics.MetricType;
 import net.spy.memcached.ops.Operation;
+import net.spy.memcached.transcoders.TranscoderService;
 import net.spy.memcached.transcoders.Transcoder;
 
 /**
@@ -151,6 +152,11 @@ public interface ConnectionFactory {
    * factory.
    */
   Transcoder<Object> getDefaultTranscoder();
+
+  /**
+   * Get the default transcoder service.
+   */
+  TranscoderService getDefaultTranscoderService(boolean daemon);
 
   /**
    * If true, low-level optimization is in effect.
