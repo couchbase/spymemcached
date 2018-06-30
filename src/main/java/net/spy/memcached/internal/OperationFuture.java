@@ -166,9 +166,6 @@ public class OperationFuture<T>
       }
       throw new CheckedOperationTimeoutException(
           "Timed out waiting for operation", op);
-    } else {
-      // continuous timeout counter will be reset
-      MemcachedConnection.opSucceeded(op);
     }
     if (op != null && op.hasErrored()) {
       throw new ExecutionException(op.getException());
@@ -180,6 +177,9 @@ public class OperationFuture<T>
       throw new ExecutionException(new CheckedOperationTimeoutException(
           "Operation timed out.", op));
     }
+
+    // continuous timeout counter will be reset
+    MemcachedConnection.opSucceeded(op);
 
     /* TODO: re-add assertion that op.getState() == OperationState.COMPLETE */
 
