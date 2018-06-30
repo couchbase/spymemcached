@@ -52,4 +52,23 @@ public class ConnectionFactoryTest extends TestCase {
     assertEquals(Integer.MAX_VALUE, cf.createReadOperationQueue()
         .remainingCapacity());
   }
+
+  // fix java.lang.ClassCastException in toString when non-default hash algorithm is provided
+  public void testToStringUsingNonDefaultHashAlgorithm() {
+    ConnectionFactory cf = new DefaultConnectionFactory(100, 1024, new HashAlgorithm() {
+        // some non-default hash algorithm
+        public long hash(String k) {
+            return 0;
+        }
+    });
+    // call toString on ConnectionFactory
+    assertTrue(cf.toString().contains("Hash Algorithm:"));
+  }
+
+  public void testToString() {
+    ConnectionFactory cf = new DefaultConnectionFactory();
+    // call toString on ConnectionFactory
+    assertTrue(cf.toString().contains("Hash Algorithm: NATIVE_HASH"));
+  }
+
 }
