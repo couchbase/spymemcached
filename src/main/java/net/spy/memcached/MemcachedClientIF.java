@@ -24,7 +24,6 @@
 package net.spy.memcached;
 
 import net.spy.memcached.internal.BulkFuture;
-import net.spy.memcached.internal.OperationFuture;
 import net.spy.memcached.transcoders.Transcoder;
 
 import java.net.SocketAddress;
@@ -32,7 +31,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -77,7 +75,7 @@ public interface MemcachedClientIF {
 
   Future<CASResponse> asyncCAS(String key, long casId, int exp, Object value);
 
-  <T> OperationFuture<CASResponse> asyncCAS(String key, long casId, int exp,
+  <T> Future<CASResponse> asyncCAS(String key, long casId, int exp,
     T value, Transcoder<T> tc);
 
   <T> CASResponse cas(String key, long casId, int exp, T value,
@@ -229,10 +227,6 @@ public interface MemcachedClientIF {
   boolean addObserver(ConnectionObserver obs);
 
   boolean removeObserver(ConnectionObserver obs);
-
-  CountDownLatch broadcastOp(final BroadcastOpFactory of);
-  CountDownLatch broadcastOp(final BroadcastOpFactory of,
-    Collection<MemcachedNode> nodes);
 
   /**
    * Get the set of SASL mechanisms supported by the servers.
