@@ -37,7 +37,7 @@ public final class CachedData {
    * though memcached no longer has a maximum size, rather than remove this
    * entirely just bump it up for now
    */
-  public static final int MAX_SIZE = 20 * 1024 * 1024;
+  public static final int MAX_SIZE = 60 * 1024 * 1024;
 
   private final int flags;
   private final byte[] data;
