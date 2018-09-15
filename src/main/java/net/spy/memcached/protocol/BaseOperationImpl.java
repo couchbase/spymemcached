@@ -23,6 +23,8 @@
 
 package net.spy.memcached.protocol;
 
+import static java.lang.System.currentTimeMillis;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -31,7 +33,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import net.spy.memcached.MemcachedNode;
 import net.spy.memcached.compat.SpyObject;
@@ -69,6 +70,10 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
   protected Collection<MemcachedNode> notMyVbucketNodes =
       new HashSet<MemcachedNode>();
   private long writeCompleteTimestamp;
+
+  private final long createTime = currentTimeMillis();
+  private long startWriteTimestamp;
+  private long finishReadTimestamp;
 
   /**
    * If the operation gets cloned, the reference is used to cascade cancellations
@@ -164,12 +169,18 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
       cmd = null;
     }
     if (state == OperationState.COMPLETE) {
+      if (finishReadTimestamp == 0) {
+        finishReadTimestamp = currentTimeMillis();
+      }
       callback.complete();
     }
   }
 
   public final void writing() {
     transitionState(OperationState.WRITING);
+    if(startWriteTimestamp == 0){
+      startWriteTimestamp = currentTimeMillis();
+    }
   }
 
   public final void writeComplete() {
@@ -274,5 +285,17 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
   @Override
   public void setCloneCount(int count) {
     cloneCount = count;
+  }
+
+  public long getCreateTimestamp() {
+    return createTime;
+  }
+
+  public long getStartWritingTimestamp() {
+    return startWriteTimestamp;
+  }
+
+  public long getFinishedReadTimestamp() {
+    return finishReadTimestamp;
   }
 }

@@ -40,6 +40,7 @@ import net.spy.memcached.FailureMode;
 import net.spy.memcached.MemcachedConnection;
 import net.spy.memcached.MemcachedNode;
 import net.spy.memcached.compat.SpyObject;
+import net.spy.memcached.internal.EnqueueTimeoutException;
 import net.spy.memcached.ops.Operation;
 import net.spy.memcached.ops.OperationState;
 import net.spy.memcached.protocol.binary.TapAckOperationImpl;
@@ -359,8 +360,8 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements
         return;
       }
       if (!inputQueue.offer(op, opQueueMaxBlockTime, TimeUnit.MILLISECONDS)) {
-        throw new IllegalStateException("Timed out waiting to add " + op
-            + "(max wait=" + opQueueMaxBlockTime + "ms)");
+        throw new EnqueueTimeoutException("Timed out waiting to add " + op
+            + "(max wait=" + opQueueMaxBlockTime + "ms)", op);
       }
     } catch (InterruptedException e) {
       // Restore the interrupted status

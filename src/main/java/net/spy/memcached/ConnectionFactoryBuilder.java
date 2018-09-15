@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import net.spy.memcached.auth.AuthDescriptor;
@@ -75,7 +76,7 @@ public class ConnectionFactoryBuilder {
 
   protected MetricType metricType = null;
   protected MetricCollector collector = null;
-  protected ExecutorService executorService = null;
+  protected Executor executor = null;
   protected long authWaitTime = DefaultConnectionFactory.DEFAULT_AUTH_WAIT_TIME;
 
   /**
@@ -311,8 +312,8 @@ public class ConnectionFactoryBuilder {
    *
    * @param executorService the ExecutorService to use.
    */
-  public ConnectionFactoryBuilder setListenerExecutorService(ExecutorService executorService) {
-    this.executorService = executorService;
+  public ConnectionFactoryBuilder setListenerExecutorService(Executor executorService) {
+    this.executor = executorService;
     return this;
   }
 
@@ -447,13 +448,13 @@ public class ConnectionFactoryBuilder {
       }
 
       @Override
-      public ExecutorService getListenerExecutorService() {
-        return executorService == null ? super.getListenerExecutorService() : executorService;
+      public Executor getListenerExecutorService() {
+        return executor == null ? super.getListenerExecutorService() : executor;
       }
 
       @Override
       public boolean isDefaultExecutorService() {
-        return executorService == null;
+        return executor == null;
       }
 
       @Override

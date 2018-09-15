@@ -184,4 +184,10 @@ public interface Operation {
    * Sets the clone count for this operation.
    */
   void setCloneCount(int count);
+
+  long getCreateTimestamp();
+
+  long getStartWritingTimestamp();
+
+  long getFinishedReadTimestamp();
 }

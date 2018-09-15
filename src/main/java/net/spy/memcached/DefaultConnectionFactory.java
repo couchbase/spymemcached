@@ -32,10 +32,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -132,9 +131,9 @@ public class DefaultConnectionFactory extends SpyObject implements
   private MetricCollector metrics;
 
   /**
-   * The ExecutorService in which the listener callbacks will be executed.
+   * The Executor in which the listener callbacks will be executed.
    */
-  private ExecutorService executorService;
+  private Executor executor;
 
   /**
    * Construct a DefaultConnectionFactory with the given parameters.
@@ -289,16 +288,16 @@ public class DefaultConnectionFactory extends SpyObject implements
    * @return the stored {@link ExecutorService}.
    */
   @Override
-  public ExecutorService getListenerExecutorService() {
-    if (executorService == null) {
+  public Executor getListenerExecutorService() {
+    if (executor == null) {
       ThreadFactory threadFactory = new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
-          return new Thread(r, "FutureNotifyListener");
+          return new Thread(r, "FutureNotifyListener[" + DefaultConnectionFactory.this.getName() + "]");
         }
       };
 
-      executorService = new ThreadPoolExecutor(
+      executor = new ThreadPoolExecutor(
         0,
         Runtime.getRuntime().availableProcessors(),
         60L,
@@ -308,7 +307,7 @@ public class DefaultConnectionFactory extends SpyObject implements
       );
     }
 
-    return executorService;
+    return executor;
   }
 
   @Override

@@ -23,10 +23,13 @@
 
 package net.spy.memcached.internal;
 
+import net.spy.memcached.TimeoutListener;
+import net.spy.memcached.TimeoutListener.Method;
 import net.spy.memcached.compat.SpyObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -47,9 +50,9 @@ public abstract class AbstractListenableFuture
   implements ListenableFuture<T, L> {
 
   /**
-   * The {@link ExecutorService} in which the notifications will be handled.
+   * The {@link Executor} in which the notifications will be handled.
    */
-  private final ExecutorService service;
+  private final Executor service;
 
   /**
    * Holds the list of listeners which will be notified upon completion.
@@ -61,17 +64,19 @@ public abstract class AbstractListenableFuture
    *
    * @param executor the executor in which the callbacks will be executed in.
    */
-  protected AbstractListenableFuture(ExecutorService executor) {
+  protected AbstractListenableFuture(Executor executor) {
     service = executor;
     listeners = new ArrayList<GenericCompletionListener<? extends Future<T>>>();
   }
+
+  public abstract void setTimeoutListeners(Method method, List<TimeoutListener> timeoutListeners);
 
   /**
    * Returns the current executor.
    *
    * @return the current executor service.
    */
-  protected ExecutorService executor() {
+  protected Executor executor() {
     return service;
   }
 
@@ -108,9 +113,9 @@ public abstract class AbstractListenableFuture
    * @param future the future to hand over.
    * @param listener the listener to notify.
    */
-  protected void notifyListener(final ExecutorService executor,
+  protected void notifyListener(final Executor executor,
     final Future<?> future, final GenericCompletionListener listener) {
-    executor.submit(new Runnable() {
+    executor.execute(new Runnable() {
       @Override
       public void run() {
         try {

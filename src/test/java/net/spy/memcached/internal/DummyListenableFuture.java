@@ -23,10 +23,14 @@
 
 package net.spy.memcached.internal;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import net.spy.memcached.TimeoutListener;
+import net.spy.memcached.TimeoutListener.Method;
 
 /**
  * A very basic {@link ListenableFuture} to verify and test basic
@@ -96,4 +100,7 @@ public class DummyListenableFuture<T>
     return this;
   }
 
+  public void setTimeoutListeners(Method method, List<TimeoutListener> timeoutListeners) {
+    throw new UnsupportedOperationException();
+  }
 }

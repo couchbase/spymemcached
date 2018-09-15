@@ -23,12 +23,53 @@
 
 package net.spy.memcached;
 
+import static net.spy.memcached.TimeoutListener.Method.cas;
+import static net.spy.memcached.TimeoutListener.Method.from;
+import static net.spy.memcached.TimeoutListener.Method.get;
+import static net.spy.memcached.TimeoutListener.Method.getBulk;
+import static net.spy.memcached.TimeoutListener.Method.gets;
+import static net.spy.memcached.TimeoutListener.Method.touch;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
+import net.spy.memcached.TimeoutListener.Method;
 import net.spy.memcached.auth.AuthDescriptor;
 import net.spy.memcached.auth.AuthThreadMonitor;
 import net.spy.memcached.compat.SpyObject;
+import net.spy.memcached.compat.log.LoggerFactory;
 import net.spy.memcached.internal.BulkFuture;
+import net.spy.memcached.internal.BulkGetCompletionListener;
 import net.spy.memcached.internal.BulkGetFuture;
+import net.spy.memcached.internal.GetCompletionListener;
 import net.spy.memcached.internal.GetFuture;
+import net.spy.memcached.internal.OperationCompletionListener;
 import net.spy.memcached.internal.OperationFuture;
 import net.spy.memcached.internal.SingleElementInfiniteIterator;
 import net.spy.memcached.ops.CASOperationStatus;
@@ -52,32 +93,6 @@ import net.spy.memcached.protocol.binary.BinaryOperationFactory;
 import net.spy.memcached.transcoders.TranscodeService;
 import net.spy.memcached.transcoders.Transcoder;
 import net.spy.memcached.util.StringUtils;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Client to a memcached server.
@@ -157,7 +172,11 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
 
   protected final AuthThreadMonitor authMonitor = new AuthThreadMonitor();
 
-  protected final ExecutorService executorService;
+  protected final Executor executor;
+
+  private final List<TimeoutListener> timeoutListeners = new ArrayList<TimeoutListener>();
+
+  private final List<AsyncOpListener<Object>> asyncOpListeners = new ArrayList<AsyncOpListener<Object>>();
 
   /**
    * Get a memcache client operating on the specified memcached locations.
@@ -210,7 +229,7 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
     assert mconn != null : "Connection factory failed to make a connection";
     operationTimeout = cf.getOperationTimeout();
     authDescriptor = cf.getAuthDescriptor();
-    executorService = cf.getListenerExecutorService();
+    executor = cf.getListenerExecutorService();
     if (authDescriptor != null) {
       addObserver(this);
     }
@@ -301,11 +320,13 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
 
   private <T> OperationFuture<Boolean> asyncStore(StoreType storeType,
       String key, int exp, T value, Transcoder<T> tc) {
+    Method method = from(storeType);
+    final Map<AsyncOpListener<Object>, Object> before = before(method);
     CachedData co = tc.encode(value);
     final CountDownLatch latch = new CountDownLatch(1);
     final OperationFuture<Boolean> rv =
-      new OperationFuture<Boolean>(key, latch, operationTimeout,
-      executorService);
+      new OperationFuture<Boolean>(key, latch, operationTimeout, executor);
+
     Operation op = opFact.store(storeType, key, co.getFlags(), exp,
         co.getData(), new StoreOperation.Callback() {
             @Override
@@ -323,9 +344,31 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
               rv.signalComplete();
             }
           });
+    rv.setTimeoutListeners(method, timeoutListeners);
     rv.setOperation(op);
     mconn.enqueueOperation(key, op);
+    addOpAsyncListener(method, before, rv);
     return rv;
+  }
+
+  private void addOpAsyncListener(final Method method,
+          final Map<AsyncOpListener<Object>, Object> before, OperationFuture<?> rv) {
+    rv.addListener(new OperationCompletionListener() {
+
+      public void onComplete(OperationFuture<?> future) {
+        for (Entry<AsyncOpListener<Object>, Object> entry : before.entrySet()) {
+          entry.getKey().onOperationCompletion(entry.getValue(), method, future);
+        }
+      }
+    });
+  }
+
+  private Map<AsyncOpListener<Object>, Object> before(Method method) {
+    Map<AsyncOpListener<Object>, Object> result = new IdentityHashMap<AsyncOpListener<Object>, Object>();
+    for (AsyncOpListener<Object> asyncOpListener : asyncOpListeners) {
+      result.put(asyncOpListener, asyncOpListener.beforeInvoke(method));
+    }
+    return result;
   }
 
   private OperationFuture<Boolean> asyncStore(StoreType storeType, String key,
@@ -335,10 +378,13 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
 
   private <T> OperationFuture<Boolean> asyncCat(ConcatenationType catType,
       long cas, String key, T value, Transcoder<T> tc) {
+    Method method = from(catType);
+    final Map<AsyncOpListener<Object>, Object> before = before(method);
     CachedData co = tc.encode(value);
     final CountDownLatch latch = new CountDownLatch(1);
     final OperationFuture<Boolean> rv = new OperationFuture<Boolean>(key,
-        latch, operationTimeout, executorService);
+        latch, operationTimeout, executor);
+
     Operation op = opFact.cat(catType, cas, key, co.getData(),
         new OperationCallback() {
           @Override
@@ -352,8 +398,10 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
             rv.signalComplete();
           }
         });
+    rv.setTimeoutListeners(method, timeoutListeners);
     rv.setOperation(op);
     mconn.enqueueOperation(key, op);
+    addOpAsyncListener(method, before, rv);
     return rv;
   }
 
@@ -387,10 +435,11 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
   @Override
   public <T> OperationFuture<Boolean> touch(final String key, final int exp,
       final Transcoder<T> tc) {
+    Method method = touch;
+    Map<AsyncOpListener<Object>, Object> before = before(method);
     final CountDownLatch latch = new CountDownLatch(1);
     final OperationFuture<Boolean> rv =
-      new OperationFuture<Boolean>(key, latch, operationTimeout,
-      executorService);
+      new OperationFuture<Boolean>(key, latch, operationTimeout, executor);
 
     Operation op = opFact.touch(key, exp, new OperationCallback() {
       @Override
@@ -404,8 +453,10 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
         rv.signalComplete();
       }
     });
+    rv.setTimeoutListeners(method, timeoutListeners);
     rv.setOperation(op);
     mconn.enqueueOperation(key, op);
+    addOpAsyncListener(method, before, rv);
     return rv;
   }
 
@@ -620,11 +671,13 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
   @Override
   public <T> OperationFuture<CASResponse>
   asyncCAS(String key, long casId, int exp, T value, Transcoder<T> tc) {
+    Method method = cas;
+    Map<AsyncOpListener<Object>, Object> before = before(method);
     CachedData co = tc.encode(value);
     final CountDownLatch latch = new CountDownLatch(1);
     final OperationFuture<CASResponse> rv =
-      new OperationFuture<CASResponse>(key, latch, operationTimeout,
-      executorService);
+      new OperationFuture<CASResponse>(key, latch, operationTimeout, executor);
+
     Operation op = opFact.cas(StoreType.set, key, casId, co.getFlags(), exp,
         co.getData(), new StoreOperation.Callback() {
             @Override
@@ -649,8 +702,10 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
               rv.signalComplete();
             }
           });
+    rv.setTimeoutListeners(method, timeoutListeners);
     rv.setOperation(op);
     mconn.enqueueOperation(key, op);
+    addOpAsyncListener(method, before, rv);
     return rv;
   }
 
@@ -1016,9 +1071,9 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
   @Override
   public <T> GetFuture<T> asyncGet(final String key, final Transcoder<T> tc) {
 
+    final Map<AsyncOpListener<Object>, Object> before = before(get);
     final CountDownLatch latch = new CountDownLatch(1);
-    final GetFuture<T> rv = new GetFuture<T>(latch, operationTimeout, key,
-      executorService);
+    final GetFuture<T> rv = new GetFuture<T>(latch, operationTimeout, key, executor);
     Operation op = opFact.get(key, new GetOperation.Callback() {
       private Future<T> val;
 
@@ -1040,8 +1095,17 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
         rv.signalComplete();
       }
     });
+    rv.setTimeoutListeners(get, timeoutListeners);
     rv.setOperation(op);
     mconn.enqueueOperation(key, op);
+    rv.addListener(new GetCompletionListener() {
+
+      public void onComplete(GetFuture<?> future) {
+        for (Entry<AsyncOpListener<Object>, Object> entry : before.entrySet()) {
+          entry.getKey().onGetCompletion(entry.getValue(), future);
+        }
+      }
+    });
     return rv;
   }
 
@@ -1072,10 +1136,11 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
   public <T> OperationFuture<CASValue<T>> asyncGets(final String key,
       final Transcoder<T> tc) {
 
+    Method method = gets;
+    Map<AsyncOpListener<Object>, Object> before = before(method);
     final CountDownLatch latch = new CountDownLatch(1);
     final OperationFuture<CASValue<T>> rv =
-      new OperationFuture<CASValue<T>>(key, latch, operationTimeout,
-      executorService);
+      new OperationFuture<CASValue<T>>(key, latch, operationTimeout, executor);
 
     Operation op = opFact.gets(key, new GetsOperation.Callback() {
       private CASValue<T> val;
@@ -1099,8 +1164,10 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
         rv.signalComplete();
       }
     });
+    rv.setTimeoutListeners(method, timeoutListeners);
     rv.setOperation(op);
     mconn.enqueueOperation(key, op);
+    addOpAsyncListener(method, before, rv);
     return rv;
   }
 
@@ -1273,6 +1340,7 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
   @Override
   public <T> BulkFuture<Map<String, T>> asyncGetBulk(Iterator<String> keyIter,
       Iterator<Transcoder<T>> tcIter) {
+    final Map<AsyncOpListener<Object>, Object> before = before(getBulk);
     final Map<String, Future<T>> m = new ConcurrentHashMap<String, Future<T>>();
 
     // This map does not need to be a ConcurrentHashMap
@@ -1319,7 +1387,9 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
     int initialLatchCount = chunks.isEmpty() ? 0 : 1;
     final CountDownLatch latch = new CountDownLatch(initialLatchCount);
     final Collection<Operation> ops = new ArrayList<Operation>(chunks.size());
-    final BulkGetFuture<T> rv = new BulkGetFuture<T>(m, ops, latch, executorService);
+    final String name = connFactory instanceof DefaultConnectionFactory ? ((DefaultConnectionFactory) connFactory)
+            .getName() : null;
+    final BulkGetFuture<T> rv = new BulkGetFuture<T>(m, ops, latch, executor, name);
 
     GetOperation.Callback cb = new GetOperation.Callback() {
       @Override
@@ -1352,14 +1422,23 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
     final Map<MemcachedNode, Operation> mops =
         new HashMap<MemcachedNode, Operation>();
 
-    for (Map.Entry<MemcachedNode, Collection<String>> me : chunks.entrySet()) {
+    for (Entry<MemcachedNode, Collection<String>> me : chunks.entrySet()) {
       Operation op = opFact.get(me.getValue(), cb);
       mops.put(me.getKey(), op);
       ops.add(op);
     }
     assert mops.size() == chunks.size();
+    rv.setTimeoutListeners(null, timeoutListeners);
     mconn.checkState();
     mconn.addOperations(mops);
+    rv.addListener(new BulkGetCompletionListener() {
+
+      public void onComplete(BulkGetFuture<?> future) {
+        for (Entry<AsyncOpListener<Object>, Object> entry : before.entrySet()) {
+          entry.getKey().onBulkGetCompletion(entry.getValue(), future);
+        }
+      }
+    });
     return rv;
   }
 
@@ -1503,9 +1582,11 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
   @Override
   public <T> OperationFuture<CASValue<T>> asyncGetAndTouch(final String key,
       final int exp, final Transcoder<T> tc) {
+    Method method = Method.getAndTouch;
+    Map<AsyncOpListener<Object>, Object> before = before(method);
     final CountDownLatch latch = new CountDownLatch(1);
     final OperationFuture<CASValue<T>> rv = new OperationFuture<CASValue<T>>(
-        key, latch, operationTimeout, executorService);
+        key, latch, operationTimeout, executor);
 
     Operation op = opFact.getAndTouch(key, exp,
         new GetAndTouchOperation.Callback() {
@@ -1530,8 +1611,10 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
                     tc.getMaxSize())));
           }
         });
+    rv.setTimeoutListeners(method, timeoutListeners);
     rv.setOperation(op);
     mconn.enqueueOperation(key, op);
+    addOpAsyncListener(method, before, rv);
     return rv;
   }
 
@@ -1772,6 +1855,13 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
       }));
     try {
       if (!latch.await(operationTimeout, TimeUnit.MILLISECONDS)) {
+        for (TimeoutListener timeoutListener : timeoutListeners) {
+          try {
+            timeoutListener.onTimeout(from(m), null);
+          } catch (Exception e) {
+            LoggerFactory.getLogger(getClass()).error("fail to execute timeout listener:", e);
+          }
+        }
         throw new OperationTimeoutException("Mutate operation timed out,"
             + "unable to modify counter [" + key + ']');
       }
@@ -1990,9 +2080,12 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
         + "binary protocol or the sync variant.");
     }
 
+    Method method = from(m);
+    Map<AsyncOpListener<Object>, Object> before = before(method);
     final CountDownLatch latch = new CountDownLatch(1);
     final OperationFuture<Long> rv =
-        new OperationFuture<Long>(key, latch, operationTimeout, executorService);
+        new OperationFuture<Long>(key, latch, operationTimeout, executor);
+
     Operation op = opFact.mutate(m, key, by, def, exp,
         new OperationCallback() {
           @Override
@@ -2006,8 +2099,10 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
             rv.signalComplete();
           }
         });
-    mconn.enqueueOperation(key, op);
+    rv.setTimeoutListeners(method, timeoutListeners);
     rv.setOperation(op);
+    mconn.enqueueOperation(key, op);
+    addOpAsyncListener(method, before, rv);
     return rv;
   }
 
@@ -2311,9 +2406,11 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
    */
   @Override
   public OperationFuture<Boolean> delete(String key, long cas) {
+    Method method = Method.delete;
+    Map<AsyncOpListener<Object>, Object> before = before(method);
     final CountDownLatch latch = new CountDownLatch(1);
     final OperationFuture<Boolean> rv = new OperationFuture<Boolean>(key,
-        latch, operationTimeout, executorService);
+        latch, operationTimeout, executor);
 
     DeleteOperation.Callback callback = new DeleteOperation.Callback() {
       @Override
@@ -2340,8 +2437,10 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
       op = opFact.delete(key, cas, callback);
     }
 
+    rv.setTimeoutListeners(method, timeoutListeners);
     rv.setOperation(op);
     mconn.enqueueOperation(key, op);
+    addOpAsyncListener(method, before, rv);
     return rv;
   }
 
@@ -2380,7 +2479,7 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
     });
 
     return new OperationFuture<Boolean>(null, blatch, flushResult,
-        operationTimeout, executorService) {
+        operationTimeout, executor) {
 
       @Override
       public void set(Boolean o, OperationStatus s) {
@@ -2498,10 +2597,12 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
     mconn.setName(baseName + " - SHUTTING DOWN");
     boolean rv = true;
     if (connFactory.isDefaultExecutorService()) {
-      try {
-        executorService.shutdown();
-      } catch (Exception ex) {
-        getLogger().warn("Failed shutting down the ExecutorService: ", ex);
+      if(executor instanceof ExecutorService) {
+        try {
+          ((ExecutorService) executor).shutdown();
+        } catch (Exception ex) {
+          getLogger().warn("Failed shutting down the ExecutorService: ", ex);
+        }
       }
     }
     try {
@@ -2586,6 +2687,22 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
     return rv;
   }
 
+  public MemcachedClient addTimeoutListener(TimeoutListener listener) {
+    if (listener == null) {
+      throw new NullPointerException();
+    }
+    timeoutListeners.add(listener);
+    return this;
+  }
+
+  public MemcachedClient addAsyncOpListener(AsyncOpListener<?> listener) {
+    if (listener == null) {
+      throw new NullPointerException();
+    }
+    asyncOpListeners.add((AsyncOpListener) listener);
+    return this;
+  }
+
   /**
    * Remove a connection observer.
    *
@@ -2644,8 +2761,8 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
     return tcService;
   }
 
-  public ExecutorService getExecutorService() {
-    return executorService;
+  public Executor getExecutorService() {
+    return executor;
   }
 
   @Override

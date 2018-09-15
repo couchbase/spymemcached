@@ -30,6 +30,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import net.spy.memcached.auth.AuthDescriptor;
@@ -87,7 +88,7 @@ public interface ConnectionFactory {
    * Get the ExecutorService which is used to asynchronously execute listeners
    * on futures.
    */
-  ExecutorService getListenerExecutorService();
+  Executor getListenerExecutorService();
 
   /**
    * Returns true if the default provided {@link ExecutorService} has not been

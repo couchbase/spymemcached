@@ -23,19 +23,26 @@
 
 package net.spy.memcached.internal;
 
+import static java.util.Collections.unmodifiableCollection;
+import static net.spy.memcached.TimeoutListener.Method.getBulk;
+import static net.spy.memcached.TimeoutListener.Method.getBulkSome;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import net.spy.memcached.MemcachedConnection;
+import net.spy.memcached.TimeoutListener;
+import net.spy.memcached.TimeoutListener.Method;
 import net.spy.memcached.compat.log.LoggerFactory;
 import net.spy.memcached.ops.Operation;
 import net.spy.memcached.ops.OperationState;
@@ -56,17 +63,21 @@ public class BulkGetFuture<T>
   private final Map<String, Future<T>> rvMap;
   private final Collection<Operation> ops;
   private final CountDownLatch latch;
+  private final String name;
   private OperationStatus status;
   private boolean cancelled = false;
   private boolean timeout = false;
+  private Collection<Operation> timeoutOps;
+  private List<TimeoutListener> timeoutListeners;
 
   public BulkGetFuture(Map<String, Future<T>> m, Collection<Operation> getOps,
-      CountDownLatch l, ExecutorService service) {
+      CountDownLatch l, Executor service, String name) {
     super(service);
     rvMap = m;
     ops = getOps;
     latch = l;
     status = null;
+    this.name = name;
   }
 
   public boolean cancel(boolean ign) {
@@ -104,8 +115,16 @@ public class BulkGetFuture<T>
     Map<String, T> ret = internalGet(to, unit, timedoutOps);
     if (timedoutOps.size() > 0) {
       timeout = true;
+      this.timeoutOps = timedoutOps;
+      for (TimeoutListener timeoutListener : timeoutListeners) {
+        try {
+          timeoutListener.onTimeout(getBulkSome, this);
+        } catch (Exception e) {
+          LoggerFactory.getLogger(getClass()).error("fail to execute timeout listener:", e);
+        }
+      }
       LoggerFactory.getLogger(getClass()).warn(
-          new CheckedOperationTimeoutException("Operation timed out: ",
+          new CheckedOperationTimeoutException("Operation timed out[" + name + "]: ",
               timedoutOps).getMessage());
     }
     return ret;
@@ -124,7 +143,15 @@ public class BulkGetFuture<T>
     Map<String, T> ret = internalGet(to, unit, timedoutOps);
     if (timedoutOps.size() > 0) {
       this.timeout = true;
-      throw new CheckedOperationTimeoutException("Operation timed out.",
+      this.timeoutOps = timedoutOps;
+      for (TimeoutListener timeoutListener : timeoutListeners) {
+        try {
+          timeoutListener.onTimeout(getBulk, this);
+        } catch (Exception e) {
+          LoggerFactory.getLogger(getClass()).error("fail to execute timeout listener:", e);
+        }
+      }
+      throw new CheckedOperationTimeoutException("Operation timed out[" + name + "].",
           timedoutOps);
     }
     return ret;
@@ -183,6 +210,10 @@ public class BulkGetFuture<T>
     return status;
   }
 
+  public Collection<Operation> getOperations() {
+    return unmodifiableCollection(ops);
+  }
+
   public void setStatus(OperationStatus s) {
     status = s;
   }
@@ -225,4 +256,12 @@ public class BulkGetFuture<T>
     notifyListeners();
   }
 
+  @Override
+  public void setTimeoutListeners(Method method, List<TimeoutListener> timeoutListeners) {
+    this.timeoutListeners = timeoutListeners;
+  }
+
+  public Collection<Operation> getTimeoutOps() {
+    return timeoutOps;
+  }
 }

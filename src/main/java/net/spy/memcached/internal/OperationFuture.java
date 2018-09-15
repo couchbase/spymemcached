@@ -23,9 +23,11 @@
 
 package net.spy.memcached.internal;
 
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +35,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import net.spy.memcached.MemcachedConnection;
+import net.spy.memcached.TimeoutListener;
+import net.spy.memcached.TimeoutListener.Method;
 import net.spy.memcached.ops.Operation;
 import net.spy.memcached.ops.OperationState;
 import net.spy.memcached.ops.OperationStatus;
@@ -61,6 +65,8 @@ public class OperationFuture<T>
   private final long timeout;
   private Operation op;
   private final String key;
+  private Method method;
+  private List<TimeoutListener> timeoutListeners;
   private Long cas;
 
   /**
@@ -72,8 +78,7 @@ public class OperationFuture<T>
    * @param l the latch to be used counting down the OperationFuture
    * @param opTimeout the timeout within which the operation needs to be done
    */
-  public OperationFuture(String k, CountDownLatch l, long opTimeout,
-    ExecutorService service) {
+  public OperationFuture(String k, CountDownLatch l, long opTimeout, Executor service) {
     this(k, l, new AtomicReference<T>(null), opTimeout, service);
   }
 
@@ -88,7 +93,7 @@ public class OperationFuture<T>
    * @param opTimeout the timeout within which the operation needs to be done
    */
   public OperationFuture(String k, CountDownLatch l, AtomicReference<T> oref,
-      long opTimeout, ExecutorService service) {
+      long opTimeout, Executor service) {
     super(service);
 
     latch = l;
@@ -97,6 +102,12 @@ public class OperationFuture<T>
     timeout = opTimeout;
     key = k;
     cas = null;
+  }
+
+  @Override
+  public void setTimeoutListeners(Method method, List<TimeoutListener> timeoutListeners) {
+    this.method = method;
+    this.timeoutListeners = timeoutListeners;
   }
 
   /**
@@ -164,8 +175,14 @@ public class OperationFuture<T>
       if (op != null) { // op can be null on a flush
         op.timeOut();
       }
-      throw new CheckedOperationTimeoutException(
-          "Timed out waiting for operation", op);
+      for (TimeoutListener listener : timeoutListeners) {
+        try {
+          listener.onTimeout(method, this);
+        } catch (Exception e) {
+          getLogger().error("Error execute timeout listeners", e);
+        }
+      }
+      throw new CheckedOperationTimeoutException("Timed out waiting for operation", op);
     } else {
       // continuous timeout counter will be reset
       MemcachedConnection.opSucceeded(op);
@@ -231,6 +248,11 @@ public class OperationFuture<T>
     }
     return cas;
   }
+
+  public Operation getOperation() {
+    return op;
+  }
+
   /**
    * Get the current status of this operation.
    *

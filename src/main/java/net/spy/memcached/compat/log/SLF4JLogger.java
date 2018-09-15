@@ -22,6 +22,14 @@
 
 package net.spy.memcached.compat.log;
 
+import static org.slf4j.spi.LocationAwareLogger.DEBUG_INT;
+import static org.slf4j.spi.LocationAwareLogger.ERROR_INT;
+import static org.slf4j.spi.LocationAwareLogger.INFO_INT;
+import static org.slf4j.spi.LocationAwareLogger.TRACE_INT;
+import static org.slf4j.spi.LocationAwareLogger.WARN_INT;
+
+import org.slf4j.spi.LocationAwareLogger;
+
 /**
  * Logging Implementation using the <a href="http://www.slf4j.org/">SLF4J</a>
  * logging facade.
@@ -38,7 +46,10 @@ package net.spy.memcached.compat.log;
  */
 public class SLF4JLogger extends AbstractLogger {
 
+  private static final String FQCN = AbstractLogger.class.getName();
+
   private final org.slf4j.Logger logger;
+  private final LocationAwareLogger locationAwareLogger;
 
   /**
    * Get an instance of the SLF4JLogger.
@@ -46,6 +57,11 @@ public class SLF4JLogger extends AbstractLogger {
   public SLF4JLogger(String name) {
     super(name);
     logger = org.slf4j.LoggerFactory.getLogger(name);
+    if(logger instanceof LocationAwareLogger) {
+      locationAwareLogger = (LocationAwareLogger) logger;
+    } else {
+      locationAwareLogger = null;
+    }
   }
 
   @Override
@@ -78,22 +94,40 @@ public class SLF4JLogger extends AbstractLogger {
 
     switch(level) {
     case TRACE:
-      logger.trace(message.toString(), e);
+      if (locationAwareLogger != null) {
+        locationAwareLogger.log(null, FQCN, TRACE_INT, message.toString(), null, e);
+      } else {
+        logger.trace(message.toString(), e);
+      }
       break;
     case DEBUG:
-      logger.debug(message.toString(), e);
+      if (locationAwareLogger != null) {
+        locationAwareLogger.log(null, FQCN, DEBUG_INT, message.toString(), null, e);
+      } else {
+        logger.debug(message.toString(), e);
+      }
       break;
     case INFO:
-      logger.info(message.toString(), e);
+      if (locationAwareLogger != null) {
+        locationAwareLogger.log(null, FQCN, INFO_INT, message.toString(), null, e);
+      } else {
+        logger.info(message.toString(), e);
+      }
       break;
     case WARN:
-      logger.warn(message.toString(), e);
+      if (locationAwareLogger != null) {
+        locationAwareLogger.log(null, FQCN, WARN_INT, message.toString(), null, e);
+      } else {
+        logger.warn(message.toString(), e);
+      }
       break;
     case ERROR:
-      logger.error(message.toString(), e);
-      break;
     case FATAL:
-      logger.error(message.toString(), e);
+      if (locationAwareLogger != null) {
+        locationAwareLogger.log(null, FQCN, ERROR_INT, message.toString(), null, e);
+      } else {
+        logger.error(message.toString(), e);
+      }
       break;
     default:
       logger.error("Unhandled Logging Level: " + level
