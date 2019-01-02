@@ -44,7 +44,8 @@ import java.util.Map;
 public class KetamaConnectionFactory extends DefaultConnectionFactory {
 
     private final KetamaNodeKeyFormatter.Format ketamaNodeKeyFormat;
-    private Map<InetSocketAddress, Integer> weights;
+    private final Map<InetSocketAddress, Integer> weights;
+    private final long opQueueMaxBlockTime;
 
   /**
    * Create a KetamaConnectionFactory with the given maximum operation
@@ -53,7 +54,7 @@ public class KetamaConnectionFactory extends DefaultConnectionFactory {
    * @param opQueueMaxBlockTime the maximum time to block waiting for op
    *        queue operations to complete, in milliseconds
    */
-    public KetamaConnectionFactory(int qLen, int bufSize,
+  public KetamaConnectionFactory(int qLen, int bufSize,
       long opQueueMaxBlockTime) {
       this(qLen, bufSize, opQueueMaxBlockTime,
               DefaultHashAlgorithm.KETAMA_HASH,
@@ -77,6 +78,7 @@ public class KetamaConnectionFactory extends DefaultConnectionFactory {
       super(qLen, bufSize, hash);
       this.ketamaNodeKeyFormat = nodeKeyFormat;
       this.weights = weights;
+      this.opQueueMaxBlockTime = opQueueMaxBlockTime;
   }
 
   /**
@@ -96,9 +98,14 @@ public class KetamaConnectionFactory extends DefaultConnectionFactory {
   public NodeLocator createLocator(List<MemcachedNode> nodes) {
         return new KetamaNodeLocator(nodes, getHashAlg(),
                 getKetamaNodeKeyFormat(), getWeights());
-    }
+  }
 
-  /**
+  @Override
+  public long getOpQueueMaxBlockTime() {
+        return opQueueMaxBlockTime;
+  }
+
+    /**
    * @return the ketamaNodeKeyFormat
    */
   public KetamaNodeKeyFormatter.Format getKetamaNodeKeyFormat() {
