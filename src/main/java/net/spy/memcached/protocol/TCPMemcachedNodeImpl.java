@@ -485,8 +485,9 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements
   @Override
   public final String toString() {
     int sops = 0;
-    if (getSk() != null && getSk().isValid()) {
-      sops = getSk().interestOps();
+    final SelectionKey sk = getSk();
+    if (sk != null && sk.isValid()) {
+      sops = sk.interestOps();
     }
     int rsize = readQ.size() + (optimizedOp == null ? 0 : 1);
     int wsize = writeQ.size();
