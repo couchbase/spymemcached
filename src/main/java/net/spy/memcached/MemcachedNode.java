@@ -57,17 +57,18 @@ public interface MemcachedNode {
   void setupResend();
 
   /**
+   * Transition the current write item into a read state.
+   */
+  void transitionWriteItem();
+
+  /**
    * Fill the write buffer with data from the next operations in the queue.
    *
    * @param optimizeGets if true, combine sequential gets into a single
    *          multi-key get
+   * @return FillWriteBufferStatus indicates, whether this method was completed successfully or not.
    */
-  void fillWriteBuffer(boolean optimizeGets);
-
-  /**
-   * Transition the current write item into a read state.
-   */
-  void transitionWriteItem();
+  FillWriteBufferStatus fillWriteBuffer(boolean optimizeGets);
 
   /**
    * Get the operation at the top of the queue that is requiring input.

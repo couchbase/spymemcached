@@ -79,8 +79,8 @@ public class MockMemcachedNode implements MemcachedNode {
     // noop
   }
 
-  public void fillWriteBuffer(boolean optimizeGets) {
-    // noop
+  public FillWriteBufferStatus fillWriteBuffer(boolean optimizeGets) {
+    return null;
   }
 
   public void transitionWriteItem() {

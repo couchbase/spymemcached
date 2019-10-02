@@ -209,9 +209,16 @@ public  abstract class OperationImpl extends BaseOperationImpl
         && !getState().equals(OperationState.COMPLETE)) {
       transitionState(OperationState.RETRY);
     } else {
-      getCallback().receivedStatus(status);
-      transitionState(OperationState.COMPLETE);
+      setOpStateAndTriggerCallback(status, errorCode);
     }
+  }
+
+  private void setOpStateAndTriggerCallback(final OperationStatus status, final int errorCode) {
+    if (getLogger().isTraceEnabled()) {
+      getLogger().trace("Received error-code: " + errorCode);
+    }
+    transitionState(OperationState.COMPLETE);
+    getCallback().receivedStatus(status);
   }
 
   /**

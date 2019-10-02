@@ -35,10 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.spy.memcached.ConnectionFactory;
-import net.spy.memcached.FailureMode;
-import net.spy.memcached.MemcachedConnection;
-import net.spy.memcached.MemcachedNode;
+import net.spy.memcached.*;
 import net.spy.memcached.compat.SpyObject;
 import net.spy.memcached.ops.Operation;
 import net.spy.memcached.ops.OperationState;
@@ -192,23 +189,26 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements
    *
    * @see net.spy.memcached.MemcachedNode#fillWriteBuffer(boolean)
    */
-  public final void fillWriteBuffer(boolean shouldOptimize) {
+  public final FillWriteBufferStatus fillWriteBuffer(boolean shouldOptimize) {
     if (toWrite == 0 && readQ.remainingCapacity() > 0) {
       getWbuf().clear();
       Operation o=getNextWritableOp();
 
       while(o != null && toWrite < getWbuf().capacity()) {
         synchronized(o) {
-          assert o.getState() == OperationState.WRITING;
-
+          final OperationState oState = o.getState();
           ByteBuffer obuf = o.getBuffer();
-          assert obuf != null : "Didn't get a write buffer from " + o;
+          // This cases may happen due to race condition. See FillWriteBufferNPETest.
+          if (oState != OperationState.WRITING || obuf == null) {
+            return logCleanUpAndReturnStatus(FillWriteBufferStatus.forOperationState(oState), o, obuf);
+          }
+
           int bytesToCopy = Math.min(getWbuf().remaining(), obuf.remaining());
           byte[] b = new byte[bytesToCopy];
           obuf.get(b);
           getWbuf().put(b);
           getLogger().debug("After copying stuff from %s: %s", o, getWbuf());
-          if (!o.getBuffer().hasRemaining()) {
+          if (!obuf.hasRemaining()) {
             o.writeComplete();
             transitionWriteItem();
 
@@ -230,8 +230,23 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements
     } else {
       getLogger().debug("Buffer is full, skipping");
     }
+    return FillWriteBufferStatus.SUCCESS;
   }
 
+  private FillWriteBufferStatus logCleanUpAndReturnStatus(
+          final FillWriteBufferStatus status, final Operation op,
+          final ByteBuffer obuf) {
+    if (getLogger().isDebugEnabled()) {
+      getLogger().debug("fillWriteBuffer not finished successfully."
+              + " FillWriteBufferStatus: " + status
+              + " ByteBuffer: " + obuf
+              + " Operation: " + op
+              + ". Removing operation.");
+    }
+    wbuf.clear();
+    removeCurrentWriteOp();
+    return status;
+  }
 
   private Operation getNextWritableOp() {
     Operation o = getCurrentWriteOp();
@@ -485,8 +500,9 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements
   @Override
   public final String toString() {
     int sops = 0;
-    if (getSk() != null && getSk().isValid()) {
-      sops = getSk().interestOps();
+    final SelectionKey sk = getSk();
+    if (sk != null && sk.isValid()) {
+      sops = sk.interestOps();
     }
     int rsize = readQ.size() + (optimizedOp == null ? 0 : 1);
     int wsize = writeQ.size();

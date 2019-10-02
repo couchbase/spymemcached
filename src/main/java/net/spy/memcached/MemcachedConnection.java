@@ -39,12 +39,15 @@ import net.spy.memcached.ops.OperationState;
 import net.spy.memcached.ops.OperationStatus;
 import net.spy.memcached.ops.TapOperation;
 import net.spy.memcached.ops.VBucketAware;
+import net.spy.memcached.protocol.TCPMemcachedNodeImpl;
 import net.spy.memcached.protocol.binary.BinaryOperationFactory;
 import net.spy.memcached.protocol.binary.MultiGetOperationImpl;
 import net.spy.memcached.protocol.binary.TapAckOperationImpl;
 import net.spy.memcached.util.StringUtils;
+import sun.nio.ch.IOUtil;
 
 import java.io.IOException;
+import java.lang.annotation.Native;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -806,12 +809,12 @@ public class MemcachedConnection extends SpyThread {
    * @throws IOException can be raised during writing failures.
    */
   private void handleWrites(final MemcachedNode node) throws IOException {
-    node.fillWriteBuffer(shouldOptimize);
+    FillWriteBufferStatus bufferFilledStatus = node.fillWriteBuffer(shouldOptimize);
     boolean canWriteMore = node.getBytesRemainingToWrite() > 0;
-    while (canWriteMore) {
+    while (canWriteMore && bufferFilledStatus.isSuccess()) {
       int wrote = node.writeSome();
       metrics.updateHistogram(OVERALL_AVG_BYTES_WRITE_METRIC, wrote);
-      node.fillWriteBuffer(shouldOptimize);
+      bufferFilledStatus = node.fillWriteBuffer(shouldOptimize);
       canWriteMore = wrote > 0 && node.getBytesRemainingToWrite() > 0;
     }
   }
@@ -1458,23 +1461,30 @@ public class MemcachedConnection extends SpyThread {
     while (running) {
       try {
         handleIO();
-      } catch (IOException e) {
+      } catch (final IOException e) {
         logRunException(e);
-      } catch (CancelledKeyException e) {
+      } catch (final CancelledKeyException e) {
         logRunException(e);
-      } catch (ClosedSelectorException e) {
+      } catch (final ClosedSelectorException e) {
         logRunException(e);
-      } catch (IllegalStateException e) {
+      } catch (final IllegalStateException e) {
         logRunException(e);
-      } catch (ConcurrentModificationException e) {
+      } catch (final ConcurrentModificationException e) {
         logRunException(e);
+      } catch (final NullPointerException e) {
+        logRunException(e);
+      } catch (final Exception e) {
+        // Exception, because we don't want to catch an OutOfMemoryError here.
+        logException(e);
       }
     }
     getLogger().info("Shut down memcached client");
   }
 
+
+
   /**
-   * Log a exception to different levels depending on the state.
+   * Log an exception to different levels depending on the state.
    *
    * Exceptions get logged at debug level when happening during shutdown, but
    * at warning level when operating normally.
@@ -1486,6 +1496,19 @@ public class MemcachedConnection extends SpyThread {
       getLogger().debug("Exception occurred during shutdown", e);
     } else {
       getLogger().warn("Problem handling memcached IO", e);
+    }
+  }
+
+  /**
+   * Logs an exception to different levels depending on the state.
+   *
+   * @param e the Throwable to log.
+   */
+  private void logException(final Exception e) {
+    if (shutDown) {
+      getLogger().warn("Exception occurred during shutdown", e);
+    } else {
+      getLogger().error("Unexpected problem handling memcached IO", e);
     }
   }
 
