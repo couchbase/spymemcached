@@ -23,6 +23,10 @@
 
 package net.spy.memcached;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
 /**
  * A TimeoutTest.
  */
@@ -86,6 +90,39 @@ public class TimeoutTest extends ClientBaseCase {
     tryTimeout("getbulk", new Runnable() {
       public void run() {
         client.getBulk("k", "k2");
+      }
+    });
+  }
+
+  public void testAsyncGetBulkCustomTimeout() {
+    tryTimeout("asyncGetBulk", new Runnable() {
+      public void run() {
+        try {
+          client.asyncGetBulk("k", "k2").get(500, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+          throw new OperationTimeoutException("Bulk op timed out - custom timeout", e);
+        } catch (Exception e) {
+          throw new RuntimeException("Unexpected exception in bulk op", e);
+        }
+      }
+    });
+  }
+
+  public void testAsyncGetBulkDefaultTimeout() {
+    tryTimeout("asyncGetBulk", new Runnable() {
+      public void run() {
+        try {
+          client.asyncGetBulk("k", "k2").get();
+        } catch (ExecutionException e) {
+          if (e.getCause() instanceof TimeoutException) {
+            throw new OperationTimeoutException("Bulk op timed out - default timeout", e.getCause());
+          }
+          else {
+            throw new RuntimeException("Unexpected execution exception in bulk op", e);
+          }
+        } catch (Exception e) {
+          throw new RuntimeException("Unexpected exception in bulk op", e);
+        }
       }
     });
   }
