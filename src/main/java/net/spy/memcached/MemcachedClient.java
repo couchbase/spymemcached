@@ -1319,7 +1319,7 @@ public class MemcachedClient extends SpyObject implements MemcachedClientIF,
     int initialLatchCount = chunks.isEmpty() ? 0 : 1;
     final CountDownLatch latch = new CountDownLatch(initialLatchCount);
     final Collection<Operation> ops = new ArrayList<Operation>(chunks.size());
-    final BulkGetFuture<T> rv = new BulkGetFuture<T>(m, ops, latch, executorService);
+    final BulkGetFuture<T> rv = new BulkGetFuture<T>(m, ops, latch, operationTimeout, executorService);
 
     GetOperation.Callback cb = new GetOperation.Callback() {
       @Override

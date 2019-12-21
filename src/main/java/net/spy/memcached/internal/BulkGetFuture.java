@@ -56,16 +56,18 @@ public class BulkGetFuture<T>
   private final Map<String, Future<T>> rvMap;
   private final Collection<Operation> ops;
   private final CountDownLatch latch;
+  private final long defaultTimeoutMillis;
   private OperationStatus status;
   private boolean cancelled = false;
   private boolean timeout = false;
 
   public BulkGetFuture(Map<String, Future<T>> m, Collection<Operation> getOps,
-      CountDownLatch l, ExecutorService service) {
+      CountDownLatch l, long defaultTimeoutMillis, ExecutorService service) {
     super(service);
     rvMap = m;
     ops = getOps;
     latch = l;
+    this.defaultTimeoutMillis = defaultTimeoutMillis;
     status = null;
   }
 
@@ -86,9 +88,9 @@ public class BulkGetFuture<T>
 
   public Map<String, T> get() throws InterruptedException, ExecutionException {
     try {
-      return get(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+      return get(defaultTimeoutMillis, TimeUnit.MILLISECONDS);
     } catch (TimeoutException e) {
-      throw new RuntimeException("Timed out waiting forever", e);
+      throw new ExecutionException("Bulk operation timed out after " + defaultTimeoutMillis + " millis", e);
     }
   }
 
