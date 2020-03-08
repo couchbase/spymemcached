@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import net.spy.memcached.MemcachedNode;
 import net.spy.memcached.compat.SpyObject;
@@ -41,6 +40,7 @@ import net.spy.memcached.ops.OperationCallback;
 import net.spy.memcached.ops.OperationErrorType;
 import net.spy.memcached.ops.OperationException;
 import net.spy.memcached.ops.OperationState;
+import net.spy.memcached.ops.OperationStateChangeObserver;
 import net.spy.memcached.ops.OperationStatus;
 import net.spy.memcached.ops.StatusCode;
 import net.spy.memcached.ops.TimedOutOperationStatus;
@@ -65,6 +65,7 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
   private volatile MemcachedNode handlingNode = null;
   private volatile boolean timedout;
   private long creationTime;
+  private final List<OperationStateChangeObserver> stateObservers;
   private boolean timedOutUnsent = false;
   protected Collection<MemcachedNode> notMyVbucketNodes =
       new HashSet<MemcachedNode>();
@@ -85,6 +86,7 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
   public BaseOperationImpl() {
     super();
     creationTime = System.nanoTime();
+    stateObservers = new ArrayList<OperationStateChangeObserver>();
   }
 
   /**
@@ -157,6 +159,7 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
    */
   protected final synchronized void transitionState(OperationState newState) {
     getLogger().debug("Transitioned state from %s to %s", state, newState);
+    OperationState prevState = state;
     state = newState;
     // Discard our buffer when we no longer need it.
     if(state != OperationState.WRITE_QUEUED
@@ -166,6 +169,19 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
     if (state == OperationState.COMPLETE) {
       callback.complete();
     }
+
+    notifyStateObservers(prevState, state);
+  }
+
+  private void notifyStateObservers(OperationState prevState, OperationState newState) {
+    for (OperationStateChangeObserver observer : stateObservers) {
+      observer.stateChanged(this, prevState, newState);
+    }
+  }
+
+  public final void addStateObserver(OperationStateChangeObserver observer) {
+    assert observer != null;
+    stateObservers.add(observer);
   }
 
   public final void writing() {
