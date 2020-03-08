@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.List;
 
 import junit.framework.TestCase;
+import net.spy.memcached.metrics.DummyMetricCollector;
 import net.spy.memcached.protocol.binary.BinaryOperationFactory;
 
 /**
@@ -50,7 +51,7 @@ public class MemcachedConnectionTest extends TestCase {
     Collection<ConnectionObserver> observers =
       new ArrayList<ConnectionObserver>();
     MemcachedConnection mcc = new MemcachedConnection(10240, factory, addresses,
-      observers, FailureMode.Retry, new BinaryOperationFactory());
+      observers, FailureMode.Retry, new BinaryOperationFactory(new DummyMetricCollector()));
     assertNotNull(mcc.connectionsStatus());
   }
 
@@ -58,7 +59,7 @@ public class MemcachedConnectionTest extends TestCase {
     ConnectionFactory factory = new DefaultConnectionFactory();
     Collection<ConnectionObserver> observers =
       new ArrayList<ConnectionObserver>();
-    OperationFactory opfactory = new BinaryOperationFactory();
+    OperationFactory opfactory = new BinaryOperationFactory(new DummyMetricCollector());
 
     MemcachedNode node = new MockMemcachedNode(
       new InetSocketAddress(TestConfig.IPV4_ADDR, TestConfig.PORT_NUMBER));

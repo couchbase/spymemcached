@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 
 import junit.framework.TestCase;
 
+import net.spy.memcached.metrics.DummyMetricCollector;
 import net.spy.memcached.ops.GetOperation;
 import net.spy.memcached.ops.OperationStatus;
 import net.spy.memcached.protocol.binary.BinaryOperationFactory;
@@ -39,7 +40,7 @@ public class ErrorCodeTest extends TestCase {
 
   public void testErrorCodes() throws Exception {
     HashMap<Byte, String> errMap = new HashMap<Byte, String>();
-    OperationFactory opFact = new BinaryOperationFactory();
+    OperationFactory opFact = new BinaryOperationFactory(new DummyMetricCollector());
 
     errMap.put(new Byte((byte) 0x01), "NOT FOUND");
     errMap.put(new Byte((byte) 0x02), "EXISTS");
