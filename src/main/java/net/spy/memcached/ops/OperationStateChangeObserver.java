@@ -2,5 +2,5 @@ package net.spy.memcached.ops;
 
 public interface OperationStateChangeObserver {
 
-    void stateChanged(Operation operation, OperationState fromState, OperationState toState);
+    void stateChanged(OperationState fromState, OperationState toState);
 }

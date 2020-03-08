@@ -175,7 +175,7 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
 
   private void notifyStateObservers(OperationState prevState, OperationState newState) {
     for (OperationStateChangeObserver observer : stateObservers) {
-      observer.stateChanged(this, prevState, newState);
+      observer.stateChanged(prevState, newState);
     }
   }
 
