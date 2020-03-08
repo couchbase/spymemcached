@@ -308,7 +308,7 @@ public abstract class BaseOperationFactory implements OperationFactory {
    * Add a monitoring observer to the given operation
    * */
   private <O extends Operation> O monitor(O operation) {
-    operation.addStateObserver(new MonitoringOperationStateChangeObserver(metricCollector));
+    operation.addStateObserver(new MonitoringOperationStateChangeObserver(metricCollector, operation));
     return operation;
   }
 }
