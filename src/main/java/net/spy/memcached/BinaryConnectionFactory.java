@@ -75,7 +75,7 @@ public class BinaryConnectionFactory extends DefaultConnectionFactory {
 
   @Override
   public OperationFactory getOperationFactory() {
-    return new BinaryOperationFactory();
+    return new BinaryOperationFactory(getMetricCollector());
   }
 
   @Override
