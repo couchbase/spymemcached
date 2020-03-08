@@ -23,6 +23,7 @@
 
 package net.spy.memcached.protocol.ascii;
 
+import net.spy.memcached.metrics.MetricCollector;
 import net.spy.memcached.ops.BaseOperationFactory;
 import net.spy.memcached.ops.CASOperation;
 import net.spy.memcached.ops.ConcatenationOperation;
@@ -67,93 +68,177 @@ import java.util.Map;
  */
 public class AsciiOperationFactory extends BaseOperationFactory {
 
-  public DeleteOperation delete(String key, DeleteOperation.Callback cb) {
+  public AsciiOperationFactory(MetricCollector metricCollector) {
+    super(metricCollector);
+  }
+
+  @Override
+  public DeleteOperation createDelete(String key, DeleteOperation.Callback cb) {
     return new DeleteOperationImpl(key, cb);
   }
 
-  public DeleteOperation delete(String key, long cas,
+  @Override
+  public DeleteOperation createDelete(String key, long cas,
     DeleteOperation.Callback cb) {
     throw new UnsupportedOperationException("Delete with CAS is not supported "
         + "for ASCII protocol");
   }
 
-  public FlushOperation flush(int delay, OperationCallback cb) {
+  @Override
+  public FlushOperation createFlush(int delay, OperationCallback cb) {
     return new FlushOperationImpl(delay, cb);
   }
 
-  public GetAndTouchOperation getAndTouch(String key, int expiration,
+  @Override
+  public GetAndTouchOperation createGetAndTouch(String key, int expiration,
       GetAndTouchOperation.Callback cb) {
     throw new UnsupportedOperationException("Get and touch is not supported "
         + "for ASCII protocol");
   }
 
-  public GetOperation get(String key, GetOperation.Callback cb) {
+  @Override
+  public GetOperation createGet(String key, GetOperation.Callback cb) {
     return new GetOperationImpl(key, cb);
   }
 
-  public GetOperation get(Collection<String> keys, GetOperation.Callback cb) {
+  @Override
+  public GetOperation createGet(Collection<String> keys, GetOperation.Callback cb) {
     return new GetOperationImpl(keys, cb);
   }
 
-  public GetlOperation getl(String key, int exp, GetlOperation.Callback cb) {
+  @Override
+  public GetlOperation createGetl(String key, int exp, GetlOperation.Callback cb) {
     return new GetlOperationImpl(key, exp, cb);
   }
 
-  public ObserveOperation observe(String key, long casId, int index,
+  @Override
+  public ObserveOperation createObserve(String key, long casId, int index,
       ObserveOperation.Callback cb) {
     throw new UnsupportedOperationException("Observe is not supported "
         + "for ASCII protocol");
   }
 
-  public UnlockOperation unlock(String key, long casId,
+  @Override
+  public UnlockOperation createUnlock(String key, long casId,
           OperationCallback cb) {
     return new UnlockOperationImpl(key, casId, cb);
   }
 
-  public GetsOperation gets(String key, GetsOperation.Callback cb) {
+  @Override
+  public GetsOperation createGets(String key, GetsOperation.Callback cb) {
     return new GetsOperationImpl(key, cb);
   }
 
-  public StatsOperation keyStats(String key, Callback cb) {
+  @Override
+  public StatsOperation createKeyStats(String key, Callback cb) {
     throw new UnsupportedOperationException("Key stats are not supported "
         + "for ASCII protocol");
   }
 
-  public MutatorOperation mutate(Mutator m, String key, long by, long exp,
+  @Override
+  public MutatorOperation createMutate(Mutator m, String key, long by, long exp,
       int def, OperationCallback cb) {
     return new MutatorOperationImpl(m, key, by, cb);
   }
 
-  public StatsOperation stats(String arg, StatsOperation.Callback cb) {
+  @Override
+  public StatsOperation createStats(String arg, StatsOperation.Callback cb) {
     return new StatsOperationImpl(arg, cb);
   }
 
-  public StoreOperation store(StoreType storeType, String key, int flags,
+  @Override
+  public StoreOperation createStore(StoreType storeType, String key, int flags,
       int exp, byte[] data, StoreOperation.Callback cb) {
     return new StoreOperationImpl(storeType, key, flags, exp, data, cb);
   }
 
-  public TouchOperation touch(String key, int expiration,
+  @Override
+  public TouchOperation createTouch(String key, int expiration,
       OperationCallback cb) {
     return new TouchOperationImpl(key, expiration, cb);
   }
 
-  public VersionOperation version(OperationCallback cb) {
+  @Override
+  public VersionOperation createVersion(OperationCallback cb) {
     return new VersionOperationImpl(cb);
   }
 
-  public NoopOperation noop(OperationCallback cb) {
+  @Override
+  public NoopOperation createNoop(OperationCallback cb) {
     return new VersionOperationImpl(cb);
   }
 
-  public CASOperation cas(StoreType type, String key, long casId, int flags,
+  @Override
+  public CASOperation createCas(StoreType type, String key, long casId, int flags,
       int exp, byte[] data, StoreOperation.Callback cb) {
     return new CASOperationImpl(key, casId, flags, exp, data, cb);
   }
 
-  public ConcatenationOperation cat(ConcatenationType catType, long casId,
+  @Override
+  public ConcatenationOperation createCat(ConcatenationType catType, long casId,
       String key, byte[] data, OperationCallback cb) {
     return new ConcatenationOperationImpl(catType, key, data, cb);
+  }
+
+  @Override
+  public SASLMechsOperation createSaslMechs(OperationCallback cb) {
+    throw new UnsupportedOperationException("SASL is not supported for "
+        + "ASCII protocol");
+  }
+
+  @Override
+  public SASLStepOperation createSaslStep(String[] mech, byte[] challenge,
+      String serverName, Map<String, ?> props, CallbackHandler cbh,
+      OperationCallback cb) {
+    throw new UnsupportedOperationException("SASL is not supported for "
+        + "ASCII protocol");
+  }
+
+  @Override
+  public SASLAuthOperation createSaslAuth(String[] mech, String serverName,
+      Map<String, ?> props, CallbackHandler cbh, OperationCallback cb) {
+    throw new UnsupportedOperationException("SASL is not supported for "
+        + "ASCII protocol");
+  }
+
+  @Override
+  public TapOperation createTapBackfill(String id, long date, OperationCallback cb) {
+    throw new UnsupportedOperationException("Tap is not supported for ASCII"
+        + " protocol");
+  }
+
+  @Override
+  public TapOperation createTapCustom(String id, RequestMessage message,
+      OperationCallback cb) {
+    throw new UnsupportedOperationException("Tap is not supported for ASCII"
+        + " protocol");
+  }
+
+  @Override
+  public TapOperation createTapAck(TapOpcode opcode, int opaque,
+      OperationCallback cb) {
+    throw new UnsupportedOperationException("Tap is not supported for ASCII"
+        + " protocol");
+  }
+
+  @Override
+  public TapOperation createTapDump(String id, OperationCallback cb) {
+    throw new UnsupportedOperationException("Tap is not supported for ASCII"
+        + " protocol");
+  }
+
+  @Override
+  public ReplicaGetOperation createReplicaGet(String key, int index,
+  ReplicaGetOperation.Callback callback) {
+    throw new UnsupportedOperationException("Replica get is not supported "
+        + "for ASCII protocol");
+  }
+
+  @Override
+  public ReplicaGetsOperation createReplicaGets(String key, int index,
+    ReplicaGetsOperation.Callback callback) {
+    throw new UnsupportedOperationException("Replica gets is not supported "
+      + "for ASCII protocol");
   }
 
   @Override
@@ -165,63 +250,5 @@ public class AsciiOperationFactory extends BaseOperationFactory {
       rv.add(get(k, callback));
     }
     return rv;
-  }
-
-  public SASLMechsOperation saslMechs(OperationCallback cb) {
-    throw new UnsupportedOperationException("SASL is not supported for "
-        + "ASCII protocol");
-  }
-
-  public SASLStepOperation saslStep(String[] mech, byte[] challenge,
-      String serverName, Map<String, ?> props, CallbackHandler cbh,
-      OperationCallback cb) {
-    throw new UnsupportedOperationException("SASL is not supported for "
-        + "ASCII protocol");
-  }
-
-  public SASLAuthOperation saslAuth(String[] mech, String serverName,
-      Map<String, ?> props, CallbackHandler cbh, OperationCallback cb) {
-    throw new UnsupportedOperationException("SASL is not supported for "
-        + "ASCII protocol");
-  }
-
-  @Override
-  public TapOperation tapBackfill(String id, long date, OperationCallback cb) {
-    throw new UnsupportedOperationException("Tap is not supported for ASCII"
-        + " protocol");
-  }
-
-  @Override
-  public TapOperation tapCustom(String id, RequestMessage message,
-      OperationCallback cb) {
-    throw new UnsupportedOperationException("Tap is not supported for ASCII"
-        + " protocol");
-  }
-
-  @Override
-  public TapOperation tapAck(TapOpcode opcode, int opaque,
-      OperationCallback cb) {
-    throw new UnsupportedOperationException("Tap is not supported for ASCII"
-        + " protocol");
-  }
-
-  @Override
-  public TapOperation tapDump(String id, OperationCallback cb) {
-    throw new UnsupportedOperationException("Tap is not supported for ASCII"
-        + " protocol");
-  }
-
-  @Override
-  public ReplicaGetOperation replicaGet(String key, int index,
-  ReplicaGetOperation.Callback callback) {
-    throw new UnsupportedOperationException("Replica get is not supported "
-        + "for ASCII protocol");
-  }
-
-  @Override
-  public ReplicaGetsOperation replicaGets(String key, int index,
-    ReplicaGetsOperation.Callback callback) {
-    throw new UnsupportedOperationException("Replica gets is not supported "
-      + "for ASCII protocol");
   }
 }
