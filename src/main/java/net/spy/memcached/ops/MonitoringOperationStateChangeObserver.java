@@ -55,8 +55,9 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
 
             String metricName = newStateToMetricName.get(newState);
             if (metricName == null) {
-                metricName = "all-nodes-time-from-" + prevState + "-to-" + newState;
+                metricName = String.format("all-nodes-time-from-%s-to-%s", prevState, newState);
                 newStateToMetricName.put(newState, metricName);
+                System.out.println(metricName);
             }
 
             return metricName;
@@ -77,8 +78,9 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
 
             String metricName = nodeToMetricName.get(socketAddress);
             if (metricName == null) {
-                metricName = "node-" + socketAddress + "-time-from-" + prevState + "-to-" + newState;
+                metricName = String.format("node-%s-time-from-%s-to-%s", socketAddress, prevState, newState);
                 nodeToMetricName.put(socketAddress, metricName);
+                System.out.println(metricName);
             }
 
             return metricName;
