@@ -23,11 +23,17 @@
 
 package net.spy.memcached.ops;
 
-import net.spy.memcached.MemcachedNode;
-import net.spy.memcached.OperationFactory;
-
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
+
+import javax.security.auth.callback.CallbackHandler;
+
+import net.spy.memcached.MemcachedNode;
+import net.spy.memcached.OperationFactory;
+import net.spy.memcached.metrics.MetricCollector;
+import net.spy.memcached.tapmessage.RequestMessage;
+import net.spy.memcached.tapmessage.TapOpcode;
 
 /**
  * Base class for operation factories.
@@ -39,8 +45,180 @@ import java.util.Collection;
  */
 public abstract class BaseOperationFactory implements OperationFactory {
 
-  private String first(Collection<String> keys) {
-    return keys.iterator().next();
+  private final MonitoringOperationStateChangeObserver monitoringOperationStateChangeObserver;
+
+  public BaseOperationFactory(MetricCollector metricCollector) {
+    this.monitoringOperationStateChangeObserver = new MonitoringOperationStateChangeObserver(metricCollector);
+  }
+
+  protected abstract NoopOperation createNoop(OperationCallback cb);
+
+  protected abstract DeleteOperation createDelete(String key, DeleteOperation.Callback callback);
+
+  protected abstract DeleteOperation createDelete(String key, long cas, DeleteOperation.Callback callback);
+
+  protected abstract UnlockOperation createUnlock(String key, long casId, OperationCallback operationCallback);
+
+  protected abstract ObserveOperation createObserve(String key, long casId, int index, ObserveOperation.Callback operationCallback);
+
+  protected abstract FlushOperation createFlush(int delay, OperationCallback operationCallback);
+
+  protected abstract GetAndTouchOperation createGetAndTouch(String key, int expiration, GetAndTouchOperation.Callback cb);
+
+  protected abstract GetOperation createGet(String key, GetOperation.Callback callback);
+
+  protected abstract ReplicaGetOperation createReplicaGet(String key, int index, ReplicaGetOperation.Callback callback);
+
+  protected abstract ReplicaGetsOperation createReplicaGets(String key, int index, ReplicaGetsOperation.Callback callback);
+
+  protected abstract GetlOperation createGetl(String key, int exp, GetlOperation.Callback callback);
+
+  protected abstract GetsOperation createGets(String key, GetsOperation.Callback callback);
+
+  protected abstract GetOperation createGet(Collection<String> keys, GetOperation.Callback cb);
+
+  protected abstract StatsOperation createKeyStats(String key, StatsOperation.Callback cb);
+
+  protected abstract MutatorOperation createMutate(Mutator m, String key, long by, long def, int exp, OperationCallback cb);
+
+  protected abstract StatsOperation createStats(String arg, StatsOperation.Callback cb);
+
+  protected abstract StoreOperation createStore(StoreType storeType, String key, int flags, int exp, byte[] data, StoreOperation.Callback cb);
+
+  protected abstract TouchOperation createTouch(String key, int expiration, OperationCallback cb);
+
+  protected abstract ConcatenationOperation createCat(ConcatenationType catType, long casId, String key, byte[] data, OperationCallback cb);
+
+  protected abstract CASOperation createCas(StoreType t, String key, long casId, int flags, int exp, byte[] data, StoreOperation.Callback cb);
+
+  protected abstract VersionOperation createVersion(OperationCallback cb);
+
+  protected abstract SASLMechsOperation createSaslMechs(OperationCallback cb);
+
+  protected abstract SASLAuthOperation createSaslAuth(String[] mech, String serverName, Map<String, ?> props, CallbackHandler cbh, OperationCallback cb);
+
+  protected abstract SASLStepOperation createSaslStep(String[] mech, byte[] challenge, String serverName, Map<String, ?> props, CallbackHandler cbh, OperationCallback cb);
+
+  protected abstract TapOperation createTapBackfill(String id, long date, OperationCallback cb);
+
+  protected abstract TapOperation createTapCustom(String id, RequestMessage message, OperationCallback cb);
+
+  protected abstract TapOperation createTapAck(TapOpcode opcode, int opaque, OperationCallback cb);
+
+  protected abstract TapOperation createTapDump(String id, OperationCallback cb);
+
+  protected abstract Collection<? extends Operation> cloneGet(KeyedOperation op);
+
+  public NoopOperation noop(OperationCallback cb) {
+    return monitor(createNoop(cb));
+  }
+
+  public DeleteOperation delete(String key, DeleteOperation.Callback callback) {
+    return monitor(createDelete(key, callback));
+  }
+
+  public DeleteOperation delete(String key, long cas, DeleteOperation.Callback callback) {
+    return monitor(createDelete(key, cas, callback));
+  }
+
+  public UnlockOperation unlock(String key, long casId, OperationCallback operationCallback) {
+    return monitor(createUnlock(key, casId, operationCallback));
+  }
+
+  public ObserveOperation observe(String key, long casId, int index, ObserveOperation.Callback operationCallback) {
+    return monitor(createObserve(key, casId, index, operationCallback));
+  }
+
+  public FlushOperation flush(int delay, OperationCallback operationCallback) {
+    return monitor(createFlush(delay, operationCallback));
+  }
+
+  public GetAndTouchOperation getAndTouch(String key, int expiration, GetAndTouchOperation.Callback cb) {
+    return monitor(createGetAndTouch(key, expiration, cb));
+  }
+
+  public GetOperation get(String key, GetOperation.Callback callback) {
+    return monitor(createGet(key, callback));
+  }
+
+  public ReplicaGetOperation replicaGet(String key, int index, ReplicaGetOperation.Callback callback) {
+    return monitor(createReplicaGet(key, index, callback));
+  }
+
+  public ReplicaGetsOperation replicaGets(String key, int index, ReplicaGetsOperation.Callback callback) {
+    return monitor(createReplicaGets(key, index, callback));
+  }
+
+  public GetlOperation getl(String key, int exp, GetlOperation.Callback callback) {
+    return monitor(createGetl(key, exp, callback));
+  }
+
+  public GetsOperation gets(String key, GetsOperation.Callback callback) {
+    return monitor(createGets(key, callback));
+  }
+
+  public GetOperation get(Collection<String> keys, GetOperation.Callback cb) {
+    return monitor(createGet(keys, cb));
+  }
+
+  public StatsOperation keyStats(String key, StatsOperation.Callback cb) {
+    return monitor(createKeyStats(key, cb));
+  }
+
+  public MutatorOperation mutate(Mutator m, String key, long by, long def, int exp, OperationCallback cb) {
+    return monitor(createMutate(m, key,by, def, exp, cb));
+  }
+
+  public StatsOperation stats(String arg, StatsOperation.Callback cb) {
+    return monitor(createStats(arg, cb));
+  }
+
+  public StoreOperation store(StoreType storeType, String key, int flags, int exp, byte[] data, StoreOperation.Callback cb) {
+    return monitor(createStore(storeType, key, flags, exp, data, cb));
+  }
+
+  public TouchOperation touch(String key, int expiration, OperationCallback cb) {
+    return monitor(createTouch(key, expiration, cb));
+  }
+
+  public ConcatenationOperation cat(ConcatenationType catType, long casId, String key, byte[] data, OperationCallback cb) {
+    return monitor(createCat(catType, casId, key, data, cb));
+  }
+
+  public CASOperation cas(StoreType t, String key, long casId, int flags, int exp, byte[] data, StoreOperation.Callback cb) {
+    return monitor(createCas(t, key, casId, flags, exp, data, cb));
+  }
+
+  public VersionOperation version(OperationCallback cb) {
+    return monitor(createVersion(cb));
+  }
+
+  public SASLMechsOperation saslMechs(OperationCallback cb) {
+    return monitor(createSaslMechs(cb));
+  }
+
+  public SASLAuthOperation saslAuth(String[] mech, String serverName, Map<String, ?> props, CallbackHandler cbh, OperationCallback cb) {
+    return monitor(createSaslAuth(mech, serverName, props, cbh, cb));
+  }
+
+  public SASLStepOperation saslStep(String[] mech, byte[] challenge, String serverName, Map<String, ?> props, CallbackHandler cbh, OperationCallback cb) {
+    return monitor(createSaslStep(mech, challenge, serverName, props, cbh, cb));
+  }
+
+  public TapOperation tapBackfill(String id, long date, OperationCallback cb) {
+    return monitor(createTapBackfill(id, date, cb));
+  }
+
+  public TapOperation tapCustom(String id, RequestMessage message, OperationCallback cb) {
+    return monitor(createTapCustom(id, message, cb));
+  }
+
+  public TapOperation tapAck(TapOpcode opcode, int opaque, OperationCallback cb) {
+    return monitor(createTapAck(opcode, opaque, cb));
+  }
+
+  public TapOperation tapDump(String id, OperationCallback cb) {
+    return monitor(createTapDump(id, cb));
   }
 
   public Collection<Operation> clone(KeyedOperation op) {
@@ -122,6 +300,15 @@ public abstract class BaseOperationFactory implements OperationFactory {
     return rv;
   }
 
-  protected abstract Collection<? extends Operation>
-  cloneGet(KeyedOperation op);
+  private String first(Collection<String> keys) {
+    return keys.iterator().next();
+  }
+
+  /**
+   * Add a monitoring observer to the given operation
+   * */
+  private <O extends Operation> O monitor(O operation) {
+    operation.addStateObserver(monitoringOperationStateChangeObserver);
+    return operation;
+  }
 }

@@ -64,6 +64,11 @@ public interface Operation {
   OperationState getState();
 
   /**
+   * Add observer for state changes
+   * */
+  void addStateObserver(OperationStateChangeObserver observer);
+
+  /**
    * Get the write buffer for this operation.
    */
   ByteBuffer getBuffer();
