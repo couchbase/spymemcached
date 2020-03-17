@@ -45,10 +45,10 @@ import net.spy.memcached.tapmessage.TapOpcode;
  */
 public abstract class BaseOperationFactory implements OperationFactory {
 
-  private final MetricCollector metricCollector;
+  private final MonitoringOperationStateChangeObserver monitoringOperationStateChangeObserver;
 
   public BaseOperationFactory(MetricCollector metricCollector) {
-    this.metricCollector = metricCollector;
+    this.monitoringOperationStateChangeObserver = new MonitoringOperationStateChangeObserver(metricCollector);
   }
 
   protected abstract NoopOperation createNoop(OperationCallback cb);
@@ -308,7 +308,7 @@ public abstract class BaseOperationFactory implements OperationFactory {
    * Add a monitoring observer to the given operation
    * */
   private <O extends Operation> O monitor(O operation) {
-    operation.addStateObserver(new MonitoringOperationStateChangeObserver(metricCollector, operation));
+    operation.addStateObserver(monitoringOperationStateChangeObserver);
     return operation;
   }
 }

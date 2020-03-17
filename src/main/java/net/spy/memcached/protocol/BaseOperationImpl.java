@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import net.spy.memcached.MemcachedNode;
 import net.spy.memcached.compat.SpyObject;
@@ -65,6 +66,7 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
   private volatile MemcachedNode handlingNode = null;
   private volatile boolean timedout;
   private long creationTime;
+  private long lastStateChangeTime;
   private final List<OperationStateChangeObserver> stateObservers;
   private boolean timedOutUnsent = false;
   protected Collection<MemcachedNode> notMyVbucketNodes =
@@ -86,6 +88,7 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
   public BaseOperationImpl() {
     super();
     creationTime = System.nanoTime();
+    lastStateChangeTime = creationTime;
     stateObservers = new ArrayList<OperationStateChangeObserver>();
   }
 
@@ -174,9 +177,13 @@ public abstract class BaseOperationImpl extends SpyObject implements Operation {
   }
 
   private void notifyStateObservers(OperationState prevState, OperationState newState) {
-    for (OperationStateChangeObserver observer : stateObservers) {
-      observer.stateChanged(prevState, newState);
-    }
+      long currentTime = System.nanoTime();
+      long timeFromPrevToCurrentStateMicros = TimeUnit.NANOSECONDS.toMicros(currentTime - lastStateChangeTime);
+      lastStateChangeTime = currentTime;
+
+      for (OperationStateChangeObserver observer : stateObservers) {
+          observer.stateChanged(this, prevState, newState, timeFromPrevToCurrentStateMicros);
+      }
   }
 
   public final void addStateObserver(OperationStateChangeObserver observer) {

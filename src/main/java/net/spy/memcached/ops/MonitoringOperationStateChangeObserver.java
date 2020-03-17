@@ -3,7 +3,6 @@ package net.spy.memcached.ops;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import net.spy.memcached.metrics.MetricCollector;
 
@@ -12,28 +11,20 @@ import net.spy.memcached.metrics.MetricCollector;
  * */
 public class MonitoringOperationStateChangeObserver implements OperationStateChangeObserver {
 
-    private static final CachedMetricNames cachedMetricNames = new CachedMetricNames();
-
+    private final CachedMetricNames cachedMetricNames;
     private final MetricCollector metricCollector;
-    private final Operation operation;
-    private volatile long prevChangeTime;
 
-
-    public MonitoringOperationStateChangeObserver(MetricCollector metricCollector, Operation operation) {
+    MonitoringOperationStateChangeObserver(MetricCollector metricCollector) {
         this.metricCollector = metricCollector;
-        this.operation = operation;
-        this.prevChangeTime = System.nanoTime();
+        this.cachedMetricNames = new CachedMetricNames();
     }
 
-    public void stateChanged(OperationState fromState, OperationState toState) {
-        int durationMicros = (int) TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - prevChangeTime);
-        prevChangeTime = System.nanoTime();
+    public void stateChanged(Operation operation, OperationState prevState, OperationState currentState, long timeFromPrevToCurrentStateMicros) {
+        String metricName = cachedMetricNames.getOrCreateMetricName(prevState, currentState);
+        String perNodeMetricName = cachedMetricNames.getOrCreateMetricName(prevState, currentState, operation.getHandlingNode().getSocketAddress());
 
-        String metricName = cachedMetricNames.getOrCreateMetricName(fromState, toState);
-        String perNodeMetricName = cachedMetricNames.getOrCreateMetricName(fromState, toState, operation.getHandlingNode().getSocketAddress());
-
-        metricCollector.updateHistogram(metricName, durationMicros);
-        metricCollector.updateHistogram(perNodeMetricName, durationMicros);
+        metricCollector.updateHistogram(metricName, (int) timeFromPrevToCurrentStateMicros);
+        metricCollector.updateHistogram(perNodeMetricName, (int) timeFromPrevToCurrentStateMicros);
     }
 
     /**
@@ -46,7 +37,7 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
         // (prevState, newState, node) -> perNodeMetricName
         private final Map<OperationState, Map<OperationState, Map<SocketAddress, String>>> nodeMetricKeyToMetricName = new HashMap<OperationState, Map<OperationState, Map<SocketAddress, String>>>();
 
-        public String getOrCreateMetricName(OperationState prevState, OperationState newState) {
+        String getOrCreateMetricName(OperationState prevState, OperationState newState) {
             Map<OperationState, String> newStateToMetricName = metricKeyToMetricName.get(prevState);
             if (newStateToMetricName == null) {
                 newStateToMetricName = new HashMap<OperationState, String>();
@@ -57,13 +48,12 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
             if (metricName == null) {
                 metricName = String.format("all-nodes-time-from-%s-to-%s", prevState, newState);
                 newStateToMetricName.put(newState, metricName);
-                System.out.println(metricName);
             }
 
             return metricName;
         }
 
-        public String getOrCreateMetricName(OperationState prevState, OperationState newState, SocketAddress socketAddress) {
+        String getOrCreateMetricName(OperationState prevState, OperationState newState, SocketAddress socketAddress) {
             Map<OperationState, Map<SocketAddress, String>> newStateAndNodeToMetricName = nodeMetricKeyToMetricName.get(prevState);
             if (newStateAndNodeToMetricName == null) {
                 newStateAndNodeToMetricName = new HashMap<OperationState, Map<SocketAddress, String>>();
@@ -80,7 +70,6 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
             if (metricName == null) {
                 metricName = String.format("node-%s-time-from-%s-to-%s", socketAddress, prevState, newState);
                 nodeToMetricName.put(socketAddress, metricName);
-                System.out.println(metricName);
             }
 
             return metricName;
