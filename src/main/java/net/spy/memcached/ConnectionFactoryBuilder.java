@@ -54,6 +54,7 @@ public class ConnectionFactoryBuilder {
   protected Collection<ConnectionObserver> initialObservers =
       Collections.emptyList();
 
+  protected Protocol protocol = null;
   protected OperationFactory opFact;
 
   protected Locator locator = Locator.ARRAY_MOD;
@@ -232,16 +233,9 @@ public class ConnectionFactoryBuilder {
    * Convenience method to specify the protocol to use.
    */
   public ConnectionFactoryBuilder setProtocol(Protocol prot) {
-    switch (prot) {
-    case TEXT:
-      opFact = new AsciiOperationFactory();
-      break;
-    case BINARY:
-      opFact = new BinaryOperationFactory();
-      break;
-    default:
-      assert false : "Unhandled protocol: " + prot;
-    }
+    assert (prot == Protocol.TEXT || prot == Protocol.BINARY) : "Unhandled protocol: " + prot;
+    protocol = prot;
+
     return this;
   }
 
@@ -383,7 +377,7 @@ public class ConnectionFactoryBuilder {
 
       @Override
       public OperationFactory getOperationFactory() {
-        return opFact == null ? super.getOperationFactory() : opFact;
+        return opFact == null ? createOperationFactory(protocol) : opFact;
       }
 
       @Override
@@ -459,6 +453,27 @@ public class ConnectionFactoryBuilder {
       @Override
       public long getAuthWaitTime() {
         return authWaitTime;
+      }
+
+      private OperationFactory createOperationFactory(Protocol protocol) {
+        OperationFactory operationFactory = null;
+
+        if (protocol != null) {
+          switch (protocol) {
+            case TEXT:
+              operationFactory = new AsciiOperationFactory(getMetricCollector(), enableMetrics());
+              break;
+            case BINARY:
+              operationFactory = new BinaryOperationFactory(getMetricCollector(), enableMetrics());
+              break;
+            default:
+              assert false : "Unhandled protocol: " + protocol;
+          }
+        } else {
+          operationFactory = super.getOperationFactory();
+        }
+
+        return operationFactory;
       }
     };
 
