@@ -39,6 +39,7 @@ import net.spy.memcached.auth.AuthDescriptor;
 import net.spy.memcached.auth.PlainCallbackHandler;
 import net.spy.memcached.compat.BaseMockCase;
 import net.spy.memcached.metrics.DummyMetricCollector;
+import net.spy.memcached.metrics.MetricType;
 import net.spy.memcached.ops.Operation;
 import net.spy.memcached.ops.OperationQueueFactory;
 import net.spy.memcached.protocol.ascii.AsciiMemcachedNodeImpl;
@@ -134,7 +135,7 @@ public class ConnectionFactoryBuilderTest extends BaseMockCase {
         .setFailureMode(FailureMode.Redistribute)
         .setHashAlg(DefaultHashAlgorithm.KETAMA_HASH)
         .setInitialObservers(Collections.singleton(testObserver))
-        .setOpFact(new BinaryOperationFactory(new DummyMetricCollector())).setOpTimeout(4225)
+        .setOpFact(new BinaryOperationFactory(new DummyMetricCollector(), MetricType.OFF)).setOpTimeout(4225)
         .setOpQueueFactory(opQueueFactory)
         .setReadOpQueueFactory(rQueueFactory)
         .setWriteOpQueueFactory(wQueueFactory).setReadBufferSize(19)
