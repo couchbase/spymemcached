@@ -338,7 +338,7 @@ public class DefaultConnectionFactory extends SpyObject implements
    * @see net.spy.memcached.ConnectionFactory#getOperationFactory()
    */
   public OperationFactory getOperationFactory() {
-    return new AsciiOperationFactory(getMetricCollector());
+    return new AsciiOperationFactory(getMetricCollector(), enableMetrics());
   }
 
   /*

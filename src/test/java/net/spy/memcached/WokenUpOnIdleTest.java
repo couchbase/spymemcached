@@ -23,6 +23,7 @@
 package net.spy.memcached;
 
 import net.spy.memcached.metrics.DummyMetricCollector;
+import net.spy.memcached.metrics.MetricType;
 import net.spy.memcached.protocol.binary.BinaryOperationFactory;
 import org.junit.Test;
 
@@ -53,7 +54,7 @@ public class WokenUpOnIdleTest {
       Arrays.asList(new InetSocketAddress(11211)),
       Collections.<ConnectionObserver>emptyList(),
       FailureMode.Redistribute,
-      new BinaryOperationFactory(new DummyMetricCollector())
+      new BinaryOperationFactory(new DummyMetricCollector(), MetricType.OFF)
     );
 
     assertTrue(latch.await(5, TimeUnit.SECONDS));

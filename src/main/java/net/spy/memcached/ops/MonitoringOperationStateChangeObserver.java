@@ -16,7 +16,7 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
 
     MonitoringOperationStateChangeObserver(MetricCollector metricCollector) {
         this.metricCollector = metricCollector;
-        this.cachedMetricNames = new CachedMetricNames();
+        this.cachedMetricNames = new CachedMetricNames(metricCollector);
     }
 
     public void stateChanged(Operation operation, OperationState prevState, OperationState currentState, long timeFromPrevToCurrentStateMicros) {
@@ -36,6 +36,11 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
         private final Map<OperationState, Map<OperationState, String>> metricKeyToMetricName = new HashMap<OperationState, Map<OperationState, String>>();
         // (prevState, newState, node) -> perNodeMetricName
         private final Map<OperationState, Map<OperationState, Map<SocketAddress, String>>> nodeMetricKeyToMetricName = new HashMap<OperationState, Map<OperationState, Map<SocketAddress, String>>>();
+        private final MetricCollector metricCollector;
+
+        public CachedMetricNames(MetricCollector metricCollector) {
+            this.metricCollector = metricCollector;
+        }
 
         String getOrCreateMetricName(OperationState prevState, OperationState newState) {
             Map<OperationState, String> newStateToMetricName = metricKeyToMetricName.get(prevState);
@@ -46,7 +51,8 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
 
             String metricName = newStateToMetricName.get(newState);
             if (metricName == null) {
-                metricName = String.format("all-nodes-time-from-%s-to-%s", prevState, newState);
+                metricName = String.format("overall-time-from-%s-to-%s", prevState, newState);
+                metricCollector.addHistogram(metricName);
                 newStateToMetricName.put(newState, metricName);
             }
 
@@ -69,6 +75,7 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
             String metricName = nodeToMetricName.get(socketAddress);
             if (metricName == null) {
                 metricName = String.format("node-%s-time-from-%s-to-%s", socketAddress, prevState, newState);
+                metricCollector.addHistogram(metricName);
                 nodeToMetricName.put(socketAddress, metricName);
             }
 

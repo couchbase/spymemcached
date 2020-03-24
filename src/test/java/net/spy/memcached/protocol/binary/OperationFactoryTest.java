@@ -25,6 +25,7 @@ package net.spy.memcached.protocol.binary;
 import net.spy.memcached.OperationFactory;
 import net.spy.memcached.OperationFactoryTestBase;
 import net.spy.memcached.metrics.DummyMetricCollector;
+import net.spy.memcached.metrics.MetricType;
 import net.spy.memcached.ops.GetAndTouchOperation;
 import net.spy.memcached.ops.OperationCallback;
 import net.spy.memcached.ops.TouchOperation;
@@ -36,7 +37,7 @@ public class OperationFactoryTest extends OperationFactoryTestBase {
 
   @Override
   protected OperationFactory getOperationFactory() {
-    return new BinaryOperationFactory(new DummyMetricCollector());
+    return new BinaryOperationFactory(new DummyMetricCollector(), MetricType.OFF);
   }
 
   public void testGetAndTouchOperationCloning() {

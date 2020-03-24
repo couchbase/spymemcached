@@ -32,6 +32,7 @@ import javax.security.auth.callback.CallbackHandler;
 import net.spy.memcached.MemcachedNode;
 import net.spy.memcached.OperationFactory;
 import net.spy.memcached.metrics.MetricCollector;
+import net.spy.memcached.metrics.MetricType;
 import net.spy.memcached.tapmessage.RequestMessage;
 import net.spy.memcached.tapmessage.TapOpcode;
 
@@ -45,10 +46,10 @@ import net.spy.memcached.tapmessage.TapOpcode;
  */
 public abstract class BaseOperationFactory implements OperationFactory {
 
-  private final MonitoringOperationStateChangeObserver monitoringOperationStateChangeObserver;
+  private MonitoringOperationStateChangeObserver monitoringOperationStateChangeObserver;
 
-  public BaseOperationFactory(MetricCollector metricCollector) {
-    this.monitoringOperationStateChangeObserver = new MonitoringOperationStateChangeObserver(metricCollector);
+  public BaseOperationFactory(MetricCollector metricCollector, MetricType metricType) {
+    this.monitoringOperationStateChangeObserver = createMonitoringObserver(metricCollector, metricType);
   }
 
   protected abstract NoopOperation createNoop(OperationCallback cb);
@@ -304,11 +305,22 @@ public abstract class BaseOperationFactory implements OperationFactory {
     return keys.iterator().next();
   }
 
+  private MonitoringOperationStateChangeObserver createMonitoringObserver(MetricCollector metricCollector, MetricType metricType) {
+    if (metricType == MetricType.DEBUG) {
+      return new MonitoringOperationStateChangeObserver(metricCollector);
+    }
+
+    return null;
+  }
+
   /**
    * Add a monitoring observer to the given operation
    * */
   private <O extends Operation> O monitor(O operation) {
-    operation.addStateObserver(monitoringOperationStateChangeObserver);
+    if (monitoringOperationStateChangeObserver != null) {
+      operation.addStateObserver(monitoringOperationStateChangeObserver);
+    }
+
     return operation;
   }
 }
