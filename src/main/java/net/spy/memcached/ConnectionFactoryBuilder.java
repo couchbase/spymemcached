@@ -461,10 +461,10 @@ public class ConnectionFactoryBuilder {
         if (protocol != null) {
           switch (protocol) {
             case TEXT:
-              operationFactory = new AsciiOperationFactory(getMetricCollector());
+              operationFactory = new AsciiOperationFactory(getMetricCollector(), enableMetrics());
               break;
             case BINARY:
-              operationFactory = new BinaryOperationFactory(getMetricCollector());
+              operationFactory = new BinaryOperationFactory(getMetricCollector(), enableMetrics());
               break;
             default:
               assert false : "Unhandled protocol: " + protocol;

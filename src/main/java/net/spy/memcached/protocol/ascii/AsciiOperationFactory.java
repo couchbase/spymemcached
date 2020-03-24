@@ -24,6 +24,7 @@
 package net.spy.memcached.protocol.ascii;
 
 import net.spy.memcached.metrics.MetricCollector;
+import net.spy.memcached.metrics.MetricType;
 import net.spy.memcached.ops.BaseOperationFactory;
 import net.spy.memcached.ops.CASOperation;
 import net.spy.memcached.ops.ConcatenationOperation;
@@ -68,8 +69,8 @@ import java.util.Map;
  */
 public class AsciiOperationFactory extends BaseOperationFactory {
 
-  public AsciiOperationFactory(MetricCollector metricCollector) {
-    super(metricCollector);
+  public AsciiOperationFactory(MetricCollector metricCollector, MetricType metricType) {
+    super(metricCollector, metricType);
   }
 
   @Override
