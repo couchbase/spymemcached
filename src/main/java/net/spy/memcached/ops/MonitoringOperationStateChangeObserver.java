@@ -51,7 +51,7 @@ public class MonitoringOperationStateChangeObserver implements OperationStateCha
 
             String metricName = newStateToMetricName.get(newState);
             if (metricName == null) {
-                metricName = String.format("all-nodes-time-from-%s-to-%s", prevState, newState);
+                metricName = String.format("overall-time-from-%s-to-%s", prevState, newState);
                 metricCollector.addHistogram(metricName);
                 newStateToMetricName.put(newState, metricName);
             }
