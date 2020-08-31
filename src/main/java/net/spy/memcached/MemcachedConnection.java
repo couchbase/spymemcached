@@ -1131,7 +1131,7 @@ public class MemcachedConnection extends SpyThread {
           ch.configureBlocking(false);
           ch.socket().setTcpNoDelay(!connectionFactory.useNagleAlgorithm());
           int ops = 0;
-          if (ch.connect(node.getSocketAddress())) {
+          if (ch.connect(node.getSocketAddress(true))) {
             connected(node);
             addedQueue.offer(node);
             getLogger().info("Immediately reconnected to %s", node);
