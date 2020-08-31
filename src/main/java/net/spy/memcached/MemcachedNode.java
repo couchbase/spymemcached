@@ -136,6 +136,14 @@ public interface MemcachedNode {
   SocketAddress getSocketAddress();
 
   /**
+   * Get the SocketAddress of the server to which this node is connected, and resolve it again if specified.
+   *
+   * @param resolve whether to resolve and update the address
+   * @return The SocketAddress of the server to which this node is connected
+   */
+  SocketAddress getSocketAddress(boolean resolve);
+
+  /**
    * True if this node is <q>active.</q> i.e. is is currently connected and
    * expected to be able to process requests
    */

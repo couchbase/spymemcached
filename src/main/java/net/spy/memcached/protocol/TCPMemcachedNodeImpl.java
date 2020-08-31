@@ -24,6 +24,7 @@
 package net.spy.memcached.protocol;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -51,7 +52,7 @@ import net.spy.memcached.protocol.binary.TapAckOperationImpl;
 public abstract class TCPMemcachedNodeImpl extends SpyObject implements
     MemcachedNode {
 
-  private final SocketAddress socketAddress;
+  private SocketAddress socketAddress;
   private final ByteBuffer rbuf;
   private final ByteBuffer wbuf;
   protected final BlockingQueue<Operation> writeQ;
@@ -426,6 +427,22 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements
    * @see net.spy.memcached.MemcachedNode#getSocketAddress()
    */
   public final SocketAddress getSocketAddress() {
+    return getSocketAddress(false);
+  }
+
+  public final SocketAddress getSocketAddress(boolean resolve) {
+    if (resolve && socketAddress instanceof InetSocketAddress) {
+      InetSocketAddress originalAddress = (InetSocketAddress) socketAddress;
+      InetSocketAddress resolvedAddress = new InetSocketAddress(
+          originalAddress.getHostName(), originalAddress.getPort());
+
+      if (!originalAddress.equals(resolvedAddress)) {
+        socketAddress = resolvedAddress;
+        getLogger().info("node address changed from %s to %s",
+            originalAddress, resolvedAddress);
+      }
+    }
+
     return socketAddress;
   }
 

@@ -43,6 +43,10 @@ public class MockMemcachedNode implements MemcachedNode {
     return socketAddress;
   }
 
+  public SocketAddress getSocketAddress(boolean resolve) {
+    return socketAddress; // sufficiently good
+  }
+
   public MockMemcachedNode(InetSocketAddress socketAddress) {
     this.socketAddress = socketAddress;
   }
